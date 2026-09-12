@@ -56,25 +56,25 @@ export const loginOptions: readonly LoginOption[] = [
     label: 'Advogado',
     shortLabel: 'Escritorio parceiro',
     description:
-      'Visualiza um dashboard com o resumo das telas operacionais e acessa cada pagina pelo proprio card.',
+      'Cria processos, envia autos e subsidios em PDF e acompanha a recomendacao estruturada do caso.',
   },
   {
     id: 'employee',
     label: 'Funcionario da empresa',
     shortLabel: 'Time Banco Unicamp',
     description:
-      'Acompanha taxa de processos, economia com defesa e indicadores de aderencia da politica de acordos.',
+      'Acompanha a fila processada, revisa a matriz de features e exporta os dados prontos para ML.',
   },
 ]
 
 export const loginHighlights = [
   {
-    title: 'Acordos guiados por dados',
-    description: 'Concentrando criterios de decisao, pendencias e indicadores em uma unica experiencia.',
+    title: 'Extracao juridica guiada por IA',
+    description: 'PDFs entram no fluxo e saem como campos estruturados, subsidios mapeados e features limpas.',
   },
   {
-    title: 'Operacao juridica centralizada',
-    description: 'Acompanhamento de escritorios, processos e subsidios com a identidade visual da Enter.',
+    title: 'Pipeline pronto para classificacao',
+    description: 'A mesma interface organiza ingestao, pre-processamento e exportacao em JSON ou XLSX.',
   },
 ]
 
