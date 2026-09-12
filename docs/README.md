@@ -9,6 +9,7 @@ Coloque aqui os artefatos de entrega da sua equipe.
 | `presentation.*` | Slides ou documento para a apresentação final (PDF, PPTX, etc.) |
 | `demo_video.*` | Link ou arquivo do vídeo demo de até 2 minutos (ou adicione o link no README principal) |
 | `architecture.*` | Diagrama de arquitetura da solução (opcional, mas recomendado) |
+| `ML_REQUIREMENTS.md` | Guia com os requisitos para treinar, exportar e integrar o algoritmo de ML |
 
 ## Checklist de entrega
 
