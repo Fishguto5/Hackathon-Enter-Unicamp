@@ -28,6 +28,12 @@ type MainDashboardProps = {
   sections: readonly DashboardSection[]
 }
 
+type ChartDatum = {
+  label: string
+  shortLabel?: string
+  value: number
+}
+
 const statusLabels: Record<string, string> = {
   criado: 'Criado',
   documentos_recebidos: 'Documentos recebidos',
@@ -182,9 +188,10 @@ function EmployeeOverview({
   onSectionSelect,
   sections,
 }: OverviewProps) {
-  const metrics = sections.flatMap((section) => section.employeeMetrics)
   const currentSection =
     sections.find((section) => section.id === activeSection) ?? sections[0]
+  const metrics = buildEmployeeSectionMetrics(currentSection.id, processes)
+  const focusChart = buildEmployeeFocusChart(currentSection.id, processes)
 
   if (currentSection.id === 'cases') {
     return (
@@ -199,16 +206,16 @@ function EmployeeOverview({
   return (
     <div className="workspace-content">
       <section className="metrics-grid" aria-label="Indicadores principais">
-        {metrics.map((metric, index) => (
+        {metrics.map((metric) => (
           <article key={metric.label} className="metric-card">
             <div className="metric-card__top">
               <div>
                 <span>{metric.label}</span>
                 <strong>{metric.value}</strong>
               </div>
-              <small>{index % 2 === 0 ? 'ultimos 6 ciclos' : 'comparativo semanal'}</small>
+              <small>{metric.supportingLabel}</small>
             </div>
-            <MiniChart values={metric.trend} emphasis="high" />
+            <MiniChart data={metric.data} emphasis="high" />
             <p>{metric.description}</p>
           </article>
         ))}
@@ -232,14 +239,7 @@ function EmployeeOverview({
 
           <p>{currentSection.employeeNarrative}</p>
 
-          <div className="trend-chart" aria-hidden="true">
-            {currentSection.employeeTrend.map((height, index) => (
-              <span
-                key={`${currentSection.id}-${index}`}
-                style={{ height: `${height}%` }}
-              />
-            ))}
-          </div>
+          <MiniChart data={focusChart} emphasis="high" size="expanded" />
         </article>
 
         <article className="detail-card">
@@ -279,6 +279,8 @@ function EmployeeCasesView({
   processes: LegalProcess[]
 }) {
   const caseSummaries = processes.map(buildCaseSummary)
+  const createdSeries = buildRecentCreationsSeries(processes)
+  const pipelineSeries = buildPipelineDistributionSeries(processes)
 
   return (
     <div className="workspace-content">
@@ -291,7 +293,7 @@ function EmployeeCasesView({
             </div>
             <small>carteira sincronizada</small>
           </div>
-          <MiniChart values={[22, 34, 47, 52, 61, 74]} emphasis="high" />
+          <MiniChart data={createdSeries} emphasis="high" />
           <p>Casos inseridos pelo advogado e disponiveis para acompanhamento do banco.</p>
         </article>
 
@@ -303,7 +305,7 @@ function EmployeeCasesView({
             </div>
             <small>exigem proxima acao</small>
           </div>
-          <MiniChart values={[64, 59, 54, 41, 38, 29]} emphasis="high" />
+          <MiniChart data={pipelineSeries} emphasis="high" />
           <p>Processos que ainda nao chegaram ao fim do pipeline ou dependem de revisao.</p>
         </article>
       </section>
@@ -727,6 +729,9 @@ function LawyerOverviewScreen({
   ).length
   const pendingUploadCount = processes.filter((process) => process.document_count === 0).length
   const recentProcesses = processes.slice(0, 4)
+  const createdSeries = buildRecentCreationsSeries(processes)
+  const documentSeries = buildDocumentReadinessSeries(processes)
+  const analysisSeries = buildAnalysisStateSeries(processes)
 
   return (
     <>
@@ -739,7 +744,7 @@ function LawyerOverviewScreen({
             </div>
             <small>carteira atual</small>
           </div>
-          <MiniChart values={[18, 26, 34, 48, 58, 72]} emphasis="high" />
+          <MiniChart data={createdSeries} emphasis="high" />
           <p>Todos os casos criados pelo advogado ficam disponiveis para upload, analise e revisao.</p>
         </article>
 
@@ -751,7 +756,7 @@ function LawyerOverviewScreen({
             </div>
             <small>aguardando PDFs</small>
           </div>
-          <MiniChart values={[66, 57, 49, 37, 28, 21]} emphasis="high" />
+          <MiniChart data={documentSeries} emphasis="high" />
           <p>Casos que ainda precisam receber os autos e subsidios para entrar no pipeline.</p>
         </article>
 
@@ -763,7 +768,7 @@ function LawyerOverviewScreen({
             </div>
             <small>aguardando revisao</small>
           </div>
-          <MiniChart values={[14, 24, 29, 43, 57, 68]} emphasis="high" />
+          <MiniChart data={analysisSeries} emphasis="high" />
           <p>Processos cuja analise automatica ja gerou dados estruturados e racional de decisao.</p>
         </article>
       </section>
@@ -1027,6 +1032,9 @@ function LawyerProcessesScreen({
     (process) => process.analysis_state === 'resposta_definitiva',
   ).length
   const selectedSummary = selectedProcess ? buildCaseSummary(selectedProcess) : null
+  const createdSeries = buildRecentCreationsSeries(processes)
+  const reviewSeries = buildAnalysisStateSeries(processes)
+  const finalSeries = buildCompletionSeries(processes)
 
   return (
     <>
@@ -1039,7 +1047,7 @@ function LawyerProcessesScreen({
             </div>
             <small>processos criados</small>
           </div>
-          <MiniChart values={[18, 26, 34, 42, 56, 70]} emphasis="high" />
+          <MiniChart data={createdSeries} emphasis="high" />
           <p>Visualizacao consolidada de todos os casos que passaram pela criacao do processo.</p>
         </article>
 
@@ -1051,7 +1059,7 @@ function LawyerProcessesScreen({
             </div>
             <small>recomendacao pronta</small>
           </div>
-          <MiniChart values={[12, 19, 31, 44, 53, 64]} emphasis="high" />
+          <MiniChart data={reviewSeries} emphasis="high" />
           <p>Casos cuja analise automatica ja terminou e aguardam a validacao do advogado.</p>
         </article>
 
@@ -1063,7 +1071,7 @@ function LawyerProcessesScreen({
             </div>
             <small>resposta registrada</small>
           </div>
-          <MiniChart values={[8, 14, 25, 37, 46, 58]} emphasis="high" />
+          <MiniChart data={finalSeries} emphasis="high" />
           <p>Processos em que o advogado ja consolidou a resposta definitiva na plataforma.</p>
         </article>
       </section>
@@ -1374,6 +1382,223 @@ function buildPendingQueue(processes: LegalProcess[]): PendingItem[] {
     })
 }
 
+function buildEmployeeSectionMetrics(
+  sectionId: DashboardSection['id'],
+  processes: LegalProcess[],
+) {
+  const pendingCount = processes.filter(
+    (process) => process.status !== 'processado' || process.analysis_state !== 'resposta_definitiva',
+  ).length
+  const finalCount = processes.filter(
+    (process) => process.analysis_state === 'resposta_definitiva',
+  ).length
+  const recommendationCount = processes.filter(
+    (process) => process.analysis_state === 'recomendacao_gerada',
+  ).length
+
+  const sectionDescriptions: Record<
+    DashboardSection['id'],
+    [string, string, string]
+  > = {
+    home: [
+      'Quantidade real de processos cadastrados e disponiveis na operacao.',
+      'Fila atual que ainda exige acao do pipeline ou revisao juridica.',
+      'Casos em que a resposta final do advogado ja foi consolidada.',
+    ],
+    cases: [
+      'Volume real de casos sincronizados a partir da carteira processual.',
+      'Processos que ainda dependem de proxima etapa operacional.',
+      'Casos cuja recomendacao automatica ja esta pronta para revisao.',
+    ],
+    triage: [
+      'Entradas reais cadastradas e aguardando evolucao no fluxo.',
+      'Fila atual de casos que ainda nao foi concluida.',
+      'Casos com recomendacao pronta para a revisao juridica.',
+    ],
+    policy: [
+      'Base real de processos considerados para a politica de acordos.',
+      'Casos que ainda dependem de definicao operacional ou juridica.',
+      'Casos cuja resposta final ja foi registrada na plataforma.',
+    ],
+    negotiation: [
+      'Carteira real que pode originar tratativas com a parte autora.',
+      'Processos ainda em aberto antes da definicao final.',
+      'Casos com recomendacao automatica disponivel para negociacao.',
+    ],
+    subsidies: [
+      'Volume de processos com subsidios acompanhados na plataforma.',
+      'Fila aberta de processos que ainda exigem complementacao ou revisao.',
+      'Casos com recomendacao gerada usando os subsidios reconhecidos.',
+    ],
+    results: [
+      'Base real usada para consolidar resultados da operacao.',
+      'Pendencias que impedem o encerramento total da carteira.',
+      'Casos encerrados com resposta definitiva registrada.',
+    ],
+  }
+
+  const [createdDescription, pendingDescription, outcomeDescription] =
+    sectionDescriptions[sectionId]
+
+  return [
+    {
+      label: 'Processos criados',
+      value: formatValue(processes.length),
+      description: createdDescription,
+      supportingLabel: 'ultimos 6 dias',
+      data: buildRecentCreationsSeries(processes),
+    },
+    {
+      label: 'Pendencias abertas',
+      value: formatValue(pendingCount),
+      description: pendingDescription,
+      supportingLabel: 'situacao atual',
+      data: buildPipelineDistributionSeries(processes),
+    },
+    {
+      label: sectionId === 'results' ? 'Respostas finais' : 'Recomendacoes prontas',
+      value: formatValue(sectionId === 'results' ? finalCount : recommendationCount),
+      description: outcomeDescription,
+      supportingLabel: sectionId === 'results' ? 'encerramento juridico' : 'analise automatica',
+      data: sectionId === 'results' ? buildCompletionSeries(processes) : buildAnalysisStateSeries(processes),
+    },
+  ]
+}
+
+function buildEmployeeFocusChart(
+  sectionId: DashboardSection['id'],
+  processes: LegalProcess[],
+) {
+  if (sectionId === 'policy' || sectionId === 'results') {
+    return buildAnalysisStateSeries(processes)
+  }
+
+  if (sectionId === 'subsidies') {
+    return buildDocumentReadinessSeries(processes)
+  }
+
+  return buildPipelineDistributionSeries(processes)
+}
+
+function buildRecentCreationsSeries(processes: LegalProcess[]): ChartDatum[] {
+  return buildDailySeries(processes, 'created_at')
+}
+
+function buildDailySeries(
+  processes: LegalProcess[],
+  field: 'created_at' | 'updated_at',
+): ChartDatum[] {
+  const formatter = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+  })
+  const today = new Date()
+  const days = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(today)
+    date.setHours(0, 0, 0, 0)
+    date.setDate(today.getDate() - (5 - index))
+    return date
+  })
+
+  return days.map((day) => {
+    const nextDay = new Date(day)
+    nextDay.setDate(day.getDate() + 1)
+    const value = processes.filter((process) => {
+      const referenceDate = new Date(process[field])
+      return referenceDate >= day && referenceDate < nextDay
+    }).length
+
+    return {
+      label: formatter.format(day),
+      shortLabel: formatter.format(day),
+      value,
+    }
+  })
+}
+
+function buildPipelineDistributionSeries(processes: LegalProcess[]): ChartDatum[] {
+  const waitingDocuments = processes.filter((process) => process.status === 'criado').length
+  const waitingPipeline = processes.filter(
+    (process) => process.status === 'documentos_recebidos',
+  ).length
+  const inReview = processes.filter(
+    (process) => process.status === 'processado' && process.analysis_state !== 'resposta_definitiva',
+  ).length
+  const completed = processes.filter(
+    (process) => process.analysis_state === 'resposta_definitiva',
+  ).length
+
+  return [
+    { label: 'Aguardando documentos', shortLabel: 'Docs', value: waitingDocuments },
+    { label: 'Aguardando pipeline', shortLabel: 'Pipeline', value: waitingPipeline },
+    { label: 'Em revisao', shortLabel: 'Revisao', value: inReview },
+    { label: 'Finalizados', shortLabel: 'Final', value: completed },
+  ]
+}
+
+function buildDocumentReadinessSeries(processes: LegalProcess[]): ChartDatum[] {
+  return [
+    {
+      label: 'Sem documentos',
+      shortLabel: 'Sem',
+      value: processes.filter((process) => process.document_count === 0).length,
+    },
+    {
+      label: 'Com documentos',
+      shortLabel: 'Com',
+      value: processes.filter((process) => process.document_count > 0).length,
+    },
+    {
+      label: 'Com subsidios',
+      shortLabel: 'Subsidios',
+      value: processes.filter((process) =>
+        Object.values(process.subsidies).some((value) => value === 1),
+      ).length,
+    },
+    {
+      label: 'Prontos para exportar',
+      shortLabel: 'Exportar',
+      value: processes.filter((process) => process.feature_vector !== null).length,
+    },
+  ]
+}
+
+function buildAnalysisStateSeries(processes: LegalProcess[]): ChartDatum[] {
+  return [
+    {
+      label: 'Analise nao iniciada',
+      shortLabel: 'Inicial',
+      value: processes.filter((process) => process.analysis_state === 'nao_iniciada').length,
+    },
+    {
+      label: 'Recomendacao gerada',
+      shortLabel: 'Recomend.',
+      value: processes.filter((process) => process.analysis_state === 'recomendacao_gerada').length,
+    },
+    {
+      label: 'Resposta definitiva',
+      shortLabel: 'Final',
+      value: processes.filter((process) => process.analysis_state === 'resposta_definitiva').length,
+    },
+  ]
+}
+
+function buildCompletionSeries(processes: LegalProcess[]): ChartDatum[] {
+  const total = processes.length
+  const finalCount = processes.filter(
+    (process) => process.analysis_state === 'resposta_definitiva',
+  ).length
+  const recommendationCount = processes.filter(
+    (process) => process.analysis_state === 'recomendacao_gerada',
+  ).length
+
+  return [
+    { label: 'Total da carteira', shortLabel: 'Total', value: total },
+    { label: 'Em revisao', shortLabel: 'Revisao', value: recommendationCount },
+    { label: 'Finalizados', shortLabel: 'Final', value: finalCount },
+  ]
+}
+
 function formatValue(value: string | number) {
   if (typeof value === 'number') {
     if (Number.isInteger(value)) {
@@ -1390,23 +1615,65 @@ function formatValue(value: string | number) {
 }
 
 function MiniChart({
-  values,
+  data,
   emphasis = 'medium',
+  size = 'compact',
 }: {
-  values: number[]
+  data: ChartDatum[]
   emphasis?: 'medium' | 'high'
+  size?: 'compact' | 'expanded'
 }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const safeData = data.length > 0 ? data : [{ label: 'Sem dados', shortLabel: 'Sem', value: 0 }]
+  const maxValue = Math.max(...safeData.map((item) => item.value), 1)
+  const defaultIndex = Math.max(
+    safeData.findIndex((item) => item.value === Math.max(...safeData.map((entry) => entry.value))),
+    0,
+  )
+  const clampedIndex = Math.min(hoveredIndex ?? defaultIndex, safeData.length - 1)
+  const activeItem = safeData[clampedIndex]
+
   return (
-    <div className={`mini-chart mini-chart--${emphasis}`} aria-hidden="true">
+    <div
+      className={`mini-chart mini-chart--${emphasis} mini-chart--${size}`}
+      onMouseLeave={() => setHoveredIndex(null)}
+    >
+      <div className="mini-chart__summary">
+        <strong>{formatValue(activeItem.value)}</strong>
+        <span>{activeItem.label}</span>
+      </div>
       <div className="mini-chart__grid" />
       <div className="mini-chart__bars">
-        {values.map((value, index) => (
-          <span key={`${index}-${value}`} style={{ height: `${value}%` }} />
+        {safeData.map((item, index) => (
+          <button
+            key={`${item.label}-${index}`}
+            type="button"
+            className={`mini-chart__bar${index === clampedIndex ? ' is-active' : ''}`}
+            style={{ height: `${Math.max((item.value / maxValue) * 100, 8)}%` }}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onFocus={() => setHoveredIndex(index)}
+            onBlur={() => setHoveredIndex(null)}
+            aria-label={`${item.label}: ${formatValue(item.value)}`}
+          />
+        ))}
+      </div>
+      <div className="mini-chart__labels">
+        {safeData.map((item, index) => (
+          <button
+            key={`${item.label}-label-${index}`}
+            type="button"
+            className={`mini-chart__label${index === clampedIndex ? ' is-active' : ''}`}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onFocus={() => setHoveredIndex(index)}
+            onBlur={() => setHoveredIndex(null)}
+          >
+            {item.shortLabel ?? item.label}
+          </button>
         ))}
       </div>
       <div className="mini-chart__footer">
         <span>0</span>
-        <span>100</span>
+        <span>{formatValue(maxValue)}</span>
       </div>
     </div>
   )

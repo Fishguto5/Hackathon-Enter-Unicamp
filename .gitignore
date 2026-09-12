@@ -25,6 +25,10 @@ build/
 *.log
 *.tmp
 *.cache
+*.tsbuildinfo
+.vite/
+vite.config.d.ts
+vite.config.js
 .DS_Store
 Thumbs.db
 

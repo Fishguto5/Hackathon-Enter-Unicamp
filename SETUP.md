@@ -1,43 +1,89 @@
 # Setup e Execução
 
-> Preencha este arquivo com as instruções específicas da sua solução.
+Esta solução agora possui:
 
----
+- `frontend/`: interface React/Vite para criar processos, anexar PDFs, rodar o pipeline e exportar resultados
+- `src/backend/`: API Flask com processamento em memória, extração estruturada via OpenAI e geração da matriz de features
 
 ## Pré-requisitos
 
-Liste aqui as dependências necessárias para rodar a solução:
-
-- [ ] ...
-- [ ] ...
+- Python 3.11 ou superior
+- Node.js 18 ou superior
+- npm 9 ou superior
 
 ## Variáveis de Ambiente
 
-Crie um arquivo `.env` na raiz do projeto com as variáveis necessárias:
-
-```env
-# Exemplo — adapte conforme sua solução
-OPENAI_API_KEY=sua_chave_aqui
-```
-
-> **Nunca commite o arquivo `.env` com credenciais reais.**  
-> Um arquivo `.env.example` com as variáveis (sem valores) já está incluído neste repo.
-
-## Instalação
+Copie `.env.example` para `.env` na raiz do projeto e preencha:
 
 ```bash
-# Descreva aqui os passos de instalação
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-5
+VITE_API_BASE_URL=http://127.0.0.1:5000
 ```
 
-## Execução
+Se `OPENAI_API_KEY` não estiver definida, o backend executa um fallback heurístico local para a extração dos campos.
+O backend também aceita `.env` dentro de `src/`, mas a chave deve ser uma chave nova e válida.
+
+## Instalação do Backend
 
 ```bash
-# Descreva aqui como rodar a solução
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r src/backend/requirements.txt
 ```
+
+## Execução do Backend
+
+```bash
+source .venv/bin/activate
+python3 -m src.backend.app
+```
+
+O backend sobe por padrão em `http://127.0.0.1:5000`.
+
+Ao clicar em **Rodar pipeline**, a API envia todos os documentos do processo para duas análises
+estruturadas: classificação individual dos subsídios e extração dos dados centrais dos autos.
+O botão **Exportar XLSX** gera uma aba `tabela_subsidios` com as colunas `Número do processos`,
+`Contrato`, `Extrato`, `Comprovante de crédito`, `Dossiê`, `Demonstrativo de evolução da dívida`
+e `Laudo referenciado`.
+
+## Instalação do Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+## Execução do Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+O Vite exibirá a URL local no terminal. Abra o endereço informado no navegador.
+
+## Scripts disponíveis
+
+```bash
+cd frontend
+npm run dev
+npm run build
+npm run lint
+npm run preview
+```
+
+## Fluxo esperado
+
+1. Criar um processo na interface.
+2. Anexar PDFs de autos e subsídios.
+3. Rodar o pipeline.
+4. Revisar os campos extraídos, a tabela 0/1 dos subsídios e a matriz de features.
+5. Exportar `JSON` ou `XLSX`.
 
 ## Dados
 
-Coloque os arquivos de dados fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
+Coloque os arquivos fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
 
 ## Machine Learning
 
@@ -45,11 +91,13 @@ Para os requisitos especificos do algoritmo de ML, treino e geracao do bundle `.
 
 ## Estrutura do Projeto
 
-```
-├── src/          # código-fonte
-├── data/         # dados (não versionados — ver .gitignore)
-├── docs/         # apresentação e documentação
-├── .env.example  # variáveis de ambiente necessárias
-├── SETUP.md      # este arquivo
-└── README.md     # descrição do desafio
+```text
+├── frontend/         # aplicação React com Vite
+├── src/backend/      # API Flask e serviços do pipeline jurídico
+├── src/              # código-fonte complementar da solução
+├── data/             # dados não versionados
+├── docs/             # apresentação e documentação
+├── .env.example      # variáveis de ambiente necessárias
+├── SETUP.md          # este arquivo
+└── README.md         # descrição do desafio
 ```
