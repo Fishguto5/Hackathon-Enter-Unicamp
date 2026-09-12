@@ -39,32 +39,21 @@
 # 0 = documento não disponível
 #
 #
-# EXEMPLO DE ENTRADA:
+# EXEMPLO:
 #
 # [10000, 1, 0, 1, 1, 0, 1]
-#
-#
-# O exemplo acima significa:
-#
-# Valor da causa = R$ 10.000
-# Contrato = sim
-# Extrato = não
-# Comprovante = sim
-# Dossiê = sim
-# Evolução da dívida = não
-# Laudo = sim
 #
 #
 # FLUXO:
 #
 # 1. Carrega a base histórica
 #
-# 2. Treina SVM para prever:
+# 2. Treina SVM:
 #
 #       Êxito     = 1
 #       Não Êxito = 0
 #
-# 3. SVM estima a chance de Êxito
+# 3. SVM estima a probabilidade de Êxito
 #
 # 4. Se:
 #
@@ -74,13 +63,22 @@
 #       P(Êxito) < 70%
 #           → ACORDO
 #
-# 5. Caso seja acordo:
+# 5. Caso seja ACORDO:
 #
-#       Ridge estima score de 0 a 1
+#       Ridge estima o score financeiro
 #
-# 6. Valor sugerido:
+# 6. Dependendo do valor da causa,
+#    aplica-se uma meta de economia.
 #
-#       score * valor da causa
+# 7. Score ajustado:
+#
+#       score_ajustado =
+#       score_previsto * (1 - meta_economia)
+#
+# 8. Valor sugerido:
+#
+#       valor_acordo =
+#       score_ajustado * valor_da_causa
 #
 # ============================================================
 
@@ -109,13 +107,46 @@ THRESHOLD_EXITO = 0.70
 
 
 # ============================================================
+# META DE ECONOMIA POR VALOR DA CAUSA
+# ============================================================
+#
+# A política define uma margem de economia diferente
+# dependendo da exposição financeira do processo.
+#
+# ============================================================
+
+META_ECONOMIA = {
+
+    "Até 2 mil":
+        0.00,
+
+    "2 a 5 mil":
+        0.05,
+
+    "5 a 10 mil":
+        0.10,
+
+    "10 a 20 mil":
+        0.15,
+
+    "20 a 50 mil":
+        0.20,
+
+    "Acima de 50 mil":
+        0.25
+}
+
+
+# ============================================================
 # CAMINHO DA BASE HISTÓRICA
 # ============================================================
 
 ARQUIVO_BASE = Path(
+
     "/Users/anapocai/Desktop/Estagio/Enter/"
     "Hackathon/Hackathon-Enter-Unicamp/data/"
     "Hackaton_Enter_Base_Candidatos.xlsx"
+
 )
 
 
@@ -141,10 +172,6 @@ COLUNAS_DOCUMENTOS = [
 
 # ============================================================
 # FEATURES UTILIZADAS PELOS MODELOS
-# ============================================================
-#
-# qtd_documentos é calculada automaticamente.
-#
 # ============================================================
 
 FEATURES_MODELO = [
@@ -176,12 +203,14 @@ NUMERICAS = FEATURES_MODELO
 
 def carregar_base(caminho):
 
+
     if not caminho.exists():
 
         raise FileNotFoundError(
 
             f"\nArquivo não encontrado:\n"
             f"{caminho}\n"
+
         )
 
 
@@ -199,6 +228,7 @@ def carregar_base(caminho):
         caminho,
 
         sheet_name="Resultados dos processos"
+
     )
 
 
@@ -213,6 +243,7 @@ def carregar_base(caminho):
         sheet_name="Subsídios disponibilizados",
 
         header=1
+
     )
 
 
@@ -227,8 +258,10 @@ def carregar_base(caminho):
             columns={
 
                 "Número do processos":
-                "Número do processo"
+                    "Número do processo"
+
             }
+
         )
 
 
@@ -239,6 +272,7 @@ def carregar_base(caminho):
             "Não encontrei a coluna "
             "'Número do processo' "
             "na aba de subsídios."
+
         )
 
 
@@ -253,11 +287,12 @@ def carregar_base(caminho):
         on="Número do processo",
 
         how="inner"
+
     )
 
 
     # --------------------------------------------------------
-    # CONVERTER VALOR DA CAUSA
+    # VALOR DA CAUSA
     # --------------------------------------------------------
 
     df["Valor da causa"] = pd.to_numeric(
@@ -265,11 +300,12 @@ def carregar_base(caminho):
         df["Valor da causa"],
 
         errors="coerce"
+
     )
 
 
     # --------------------------------------------------------
-    # CONVERTER VALOR DA CONDENAÇÃO
+    # VALOR DA CONDENAÇÃO
     # --------------------------------------------------------
 
     df[
@@ -281,11 +317,12 @@ def carregar_base(caminho):
         ],
 
         errors="coerce"
+
     )
 
 
     # --------------------------------------------------------
-    # CONVERTER DOCUMENTOS PARA NÚMERO
+    # DOCUMENTOS
     # --------------------------------------------------------
 
     for coluna in COLUNAS_DOCUMENTOS:
@@ -310,6 +347,7 @@ def carregar_base(caminho):
         ]
 
         .sum(axis=1)
+
     )
 
 
@@ -326,7 +364,9 @@ def carregar_base(caminho):
             "Resultado macro",
 
             "Resultado micro"
+
         ]
+
     )
 
 
@@ -334,6 +374,7 @@ def carregar_base(caminho):
 
         f"Base carregada com "
         f"{len(df):,} processos."
+
     )
 
 
@@ -345,6 +386,7 @@ def carregar_base(caminho):
 # ============================================================
 
 def criar_preprocessor():
+
 
     return ColumnTransformer(
 
@@ -361,11 +403,12 @@ def criar_preprocessor():
             )
 
         ]
+
     )
 
 
 # ============================================================
-# 3. TREINAR MODELO SVM
+# 3. TREINAR SVM
 # ============================================================
 #
 # TARGET:
@@ -382,6 +425,7 @@ def treinar_modelo_exito(df):
 
         "\nTreinando SVM para prever "
         "Êxito / Não Êxito..."
+
     )
 
 
@@ -402,10 +446,6 @@ def treinar_modelo_exito(df):
 
     ).astype(int)
 
-
-    # --------------------------------------------------------
-    # SVM
-    # --------------------------------------------------------
 
     svm = Pipeline(
 
@@ -434,18 +474,12 @@ def treinar_modelo_exito(df):
             )
 
         ]
+
     )
 
 
     # --------------------------------------------------------
-    # CALIBRAR PROBABILIDADES
-    # --------------------------------------------------------
-    #
-    # LinearSVC sozinho não possui predict_proba().
-    #
-    # CalibratedClassifierCV permite obter uma
-    # probabilidade estimada de Êxito.
-    #
+    # CALIBRAR A SVM PARA OBTER PROBABILIDADES
     # --------------------------------------------------------
 
     modelo = CalibratedClassifierCV(
@@ -455,6 +489,7 @@ def treinar_modelo_exito(df):
         method="sigmoid",
 
         cv=5
+
     )
 
 
@@ -476,10 +511,10 @@ def treinar_modelo_exito(df):
 
 
 # ============================================================
-# 4. CRIAR BASE PARA O SCORE
+# 4. CRIAR BASE DO SCORE
 # ============================================================
 #
-# Apenas casos históricos de Não Êxito.
+# Apenas casos de NÃO ÊXITO.
 #
 #
 # Acordo:
@@ -490,10 +525,7 @@ def treinar_modelo_exito(df):
 # Parcial procedência:
 #
 #       score =
-#
-#       valor da condenação
-#       -------------------
-#       valor da causa
+#       condenação / valor da causa
 #
 #
 # Procedência:
@@ -538,7 +570,7 @@ def criar_base_score(df):
 
 
     # --------------------------------------------------------
-    # PROPORÇÃO CONDENAÇÃO / VALOR DA CAUSA
+    # PROPORÇÃO DA CONDENAÇÃO
     # --------------------------------------------------------
 
     df_score[
@@ -549,14 +581,12 @@ def criar_base_score(df):
             "Valor da condenação/indenização"
         ]
 
-        / denominador
+        /
+
+        denominador
 
     )
 
-
-    # --------------------------------------------------------
-    # GARANTIR INTERVALO 0 - 1
-    # --------------------------------------------------------
 
     df_score[
         "proporcao_condenacao"
@@ -578,7 +608,7 @@ def criar_base_score(df):
 
 
     # --------------------------------------------------------
-    # CRIAR SCORE HISTÓRICO
+    # CRIAR TARGET DO RIDGE
     # --------------------------------------------------------
 
     df_score[
@@ -634,10 +664,6 @@ def criar_base_score(df):
     )
 
 
-    # --------------------------------------------------------
-    # REMOVER SCORES INVÁLIDOS
-    # --------------------------------------------------------
-
     df_score = df_score.dropna(
 
         subset=[
@@ -663,6 +689,7 @@ def treinar_modelo_score(df):
 
         "\nTreinando Ridge para estimar "
         "o score do acordo..."
+
     )
 
 
@@ -712,6 +739,7 @@ def treinar_modelo_score(df):
             )
 
         ]
+
     )
 
 
@@ -736,10 +764,65 @@ def treinar_modelo_score(df):
 
 
 # ============================================================
-# 6. RECEBER A LISTA DO TERMINAL
+# 6. DEFINIR META DE ECONOMIA
+# ============================================================
+#
+# Retorna a meta de economia de acordo com
+# o valor da causa.
+#
+# ============================================================
+
+def obter_meta_economia(valor_causa):
+
+
+    if valor_causa <= 2000:
+
+        return META_ECONOMIA[
+            "Até 2 mil"
+        ]
+
+
+    elif valor_causa <= 5000:
+
+        return META_ECONOMIA[
+            "2 a 5 mil"
+        ]
+
+
+    elif valor_causa <= 10000:
+
+        return META_ECONOMIA[
+            "5 a 10 mil"
+        ]
+
+
+    elif valor_causa <= 20000:
+
+        return META_ECONOMIA[
+            "10 a 20 mil"
+        ]
+
+
+    elif valor_causa <= 50000:
+
+        return META_ECONOMIA[
+            "20 a 50 mil"
+        ]
+
+
+    else:
+
+        return META_ECONOMIA[
+            "Acima de 50 mil"
+        ]
+
+
+# ============================================================
+# 7. RECEBER ENTRADA PELO TERMINAL
 # ============================================================
 
 def receber_entrada():
+
 
     print(
         "\n"
@@ -837,10 +920,6 @@ def receber_entrada():
         try:
 
 
-            # ------------------------------------------------
-            # TRANSFORMA TEXTO EM LISTA PYTHON
-            # ------------------------------------------------
-
             entrada = ast.literal_eval(
 
                 entrada_texto
@@ -895,7 +974,9 @@ def receber_entrada():
 
                 )
 
-                or entrada[0] <= 0
+                or
+
+                entrada[0] <= 0
 
             ):
 
@@ -948,21 +1029,17 @@ def receber_entrada():
 
 
             print(
-
                 "\nExemplo válido:"
-
             )
 
 
             print(
-
                 "[10000, 1, 0, 1, 1, 0, 1]"
-
             )
 
 
 # ============================================================
-# 7. TRANSFORMAR LISTA EM DATAFRAME
+# 8. TRANSFORMAR LISTA EM DATAFRAME
 # ============================================================
 
 def criar_caso(entrada):
@@ -1026,7 +1103,7 @@ def criar_caso(entrada):
 
 
 # ============================================================
-# 8. RECOMENDAR ESTRATÉGIA
+# 9. RECOMENDAR ESTRATÉGIA
 # ============================================================
 
 def recomendar_estrategia(
@@ -1046,7 +1123,7 @@ def recomendar_estrategia(
 
 
     # --------------------------------------------------------
-    # CALCULAR QUANTIDADE DE DOCUMENTOS
+    # QUANTIDADE DE DOCUMENTOS
     # --------------------------------------------------------
 
     dados[
@@ -1141,23 +1218,15 @@ def recomendar_estrategia(
     # ========================================================
     # DECISÃO
     # ========================================================
-    #
-    # P(Êxito) >= 70%
-    #
-    #       DEFESA
-    #
-    # P(Êxito) < 70%
-    #
-    #       ACORDO
-    #
-    # ========================================================
 
     recomendacao = np.where(
 
 
         prob_exito
 
-        >= threshold_exito,
+        >=
+
+        threshold_exito,
 
 
         "Defesa",
@@ -1169,7 +1238,7 @@ def recomendar_estrategia(
 
 
     # ========================================================
-    # SCORE ESTIMADO PELO RIDGE
+    # SCORE PREVISTO PELO RIDGE
     # ========================================================
 
     score_estimado = (
@@ -1197,7 +1266,7 @@ def recomendar_estrategia(
 
 
     # ========================================================
-    # VALOR DO ACORDO
+    # VALOR DA CAUSA
     # ========================================================
 
     valor_causa = (
@@ -1215,9 +1284,71 @@ def recomendar_estrategia(
     )
 
 
-    valor_acordo = (
+    # ========================================================
+    # META DE ECONOMIA
+    # ========================================================
+
+    meta_economia = np.array([
+
+        obter_meta_economia(
+
+            valor
+
+        )
+
+        for valor in valor_causa
+
+    ])
+
+
+    # ========================================================
+    # SCORE AJUSTADO
+    # ========================================================
+    #
+    # O Ridge fornece o score estatístico.
+    #
+    # A política de negociação aplica uma margem
+    # de economia sobre esse valor.
+    #
+    # ========================================================
+
+    score_ajustado = (
 
         score_estimado
+
+        *
+
+        (
+
+            1
+
+            -
+
+            meta_economia
+
+        )
+
+    )
+
+
+    score_ajustado = np.clip(
+
+        score_ajustado,
+
+        0,
+
+        1
+
+    )
+
+
+    # ========================================================
+    # VALOR SUGERIDO DO ACORDO
+    # ========================================================
+
+    valor_acordo = (
+
+        score_ajustado
 
         *
 
@@ -1226,21 +1357,62 @@ def recomendar_estrategia(
     )
 
 
-    # --------------------------------------------------------
-    # SE FOR DEFESA:
+    # ========================================================
+    # CASOS DE DEFESA
+    # ========================================================
     #
-    # NÃO EXISTE VALOR DE ACORDO
-    # --------------------------------------------------------
+    # Se a recomendação for Defesa,
+    # não exibimos score de acordo nem valor.
+    #
+    # ========================================================
 
-    score_final = np.where(
+    score_original_final = np.where(
 
 
         recomendacao
 
-        == "Acordo",
+        ==
+
+        "Acordo",
 
 
         score_estimado,
+
+
+        np.nan
+
+    )
+
+
+    meta_final = np.where(
+
+
+        recomendacao
+
+        ==
+
+        "Acordo",
+
+
+        meta_economia,
+
+
+        np.nan
+
+    )
+
+
+    score_ajustado_final = np.where(
+
+
+        recomendacao
+
+        ==
+
+        "Acordo",
+
+
+        score_ajustado,
 
 
         np.nan
@@ -1253,7 +1425,9 @@ def recomendar_estrategia(
 
         recomendacao
 
-        == "Acordo",
+        ==
+
+        "Acordo",
 
 
         valor_acordo,
@@ -1286,9 +1460,19 @@ def recomendar_estrategia(
             recomendacao,
 
 
-        "Score estimado":
+        "Score previsto":
 
-            score_final,
+            score_original_final,
+
+
+        "Meta de economia":
+
+            meta_final,
+
+
+        "Score ajustado":
+
+            score_ajustado_final,
 
 
         "Valor sugerido do acordo":
@@ -1302,7 +1486,7 @@ def recomendar_estrategia(
 
 
 # ============================================================
-# 9. MOSTRAR RESULTADO
+# 10. MOSTRAR RESULTADO
 # ============================================================
 
 def mostrar_resultado(
@@ -1358,9 +1542,11 @@ def mostrar_resultado(
         "========================================"
     )
 
+
     print(
         "           RECOMENDAÇÃO"
     )
+
 
     print(
         "========================================"
@@ -1406,9 +1592,23 @@ def mostrar_resultado(
     if recomendacao == "Acordo":
 
 
-        score = linha[
+        score_previsto = linha[
 
-            "Score estimado"
+            "Score previsto"
+
+        ]
+
+
+        meta_economia = linha[
+
+            "Meta de economia"
+
+        ]
+
+
+        score_ajustado = linha[
+
+            "Score ajustado"
 
         ]
 
@@ -1431,18 +1631,80 @@ def mostrar_resultado(
         )
 
 
-        print(
+        # ----------------------------------------------------
+        # VALOR ANTES DO DESCONTO
+        # ----------------------------------------------------
 
-            f"\nScore estimado: "
-            f"{score:.3f}"
+        valor_previsto_original = (
+
+            score_previsto
+
+            *
+
+            valor_causa
+
+        )
+
+
+        # ----------------------------------------------------
+        # ECONOMIA EM REAIS
+        # ----------------------------------------------------
+
+        economia_reais = (
+
+            valor_previsto_original
+
+            -
+
+            valor
 
         )
 
 
         print(
 
-            f"Valor da causa: "
+            f"\nScore previsto pelo Ridge: "
+            f"{score_previsto:.3f}"
+
+        )
+
+
+        print(
+
+            f"Meta de economia aplicada: "
+            f"{meta_economia:.1%}"
+
+        )
+
+
+        print(
+
+            f"Score após ajuste: "
+            f"{score_ajustado:.3f}"
+
+        )
+
+
+        print(
+
+            f"\nValor da causa: "
             f"R$ {valor_causa:,.2f}"
+
+        )
+
+
+        print(
+
+            f"Valor estimado antes do ajuste: "
+            f"R$ {valor_previsto_original:,.2f}"
+
+        )
+
+
+        print(
+
+            f"Economia aplicada: "
+            f"R$ {economia_reais:,.2f}"
 
         )
 
@@ -1484,7 +1746,7 @@ def mostrar_resultado(
 
 
 # ============================================================
-# 10. FUNÇÃO PRINCIPAL
+# 11. FUNÇÃO PRINCIPAL
 # ============================================================
 
 def main():
@@ -1524,14 +1786,14 @@ def main():
 
 
     # ========================================================
-    # RECEBER ENTRADA PELO TERMINAL
+    # RECEBER ENTRADA
     # ========================================================
 
     entrada = receber_entrada()
 
 
     # ========================================================
-    # TRANSFORMAR ENTRADA EM DATAFRAME
+    # TRANSFORMAR ENTRADA
     # ========================================================
 
     novo_caso = criar_caso(
@@ -1548,7 +1810,8 @@ def main():
     resultado = recomendar_estrategia(
 
 
-        dados=novo_caso,
+        dados=
+            novo_caso,
 
 
         modelo_classificacao=
