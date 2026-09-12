@@ -39,6 +39,10 @@ OPENAI_API_KEY=sua_chave_aqui
 
 Coloque os arquivos de dados fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
 
+## Machine Learning
+
+Para os requisitos especificos do algoritmo de ML, treino e geracao do bundle `.pkl`, consulte [docs/ML_REQUIREMENTS.md](/home/gustavo-fernandes/Hackathon-Enter-Unicamp/docs/ML_REQUIREMENTS.md:1).
+
 ## Estrutura do Projeto
 
 ```
