@@ -21,6 +21,7 @@ type TaskItem = {
 
 export type DashboardSectionId =
   | 'home'
+  | 'cases'
   | 'triage'
   | 'policy'
   | 'negotiation'
@@ -56,7 +57,7 @@ export const loginOptions: readonly LoginOption[] = [
     label: 'Advogado',
     shortLabel: 'Escritorio parceiro',
     description:
-      'Visualiza um dashboard com o resumo das telas operacionais e acessa cada pagina pelo proprio card.',
+      'Cria processos, anexa PDFs e acompanha a extracao juridica estruturada do caso.',
   },
   {
     id: 'employee',
@@ -69,12 +70,12 @@ export const loginOptions: readonly LoginOption[] = [
 
 export const loginHighlights = [
   {
-    title: 'Acordos guiados por dados',
-    description: 'Concentrando criterios de decisao, pendencias e indicadores em uma unica experiencia.',
+    title: 'Fluxo juridico com IA',
+    description: 'Da ingestao dos autos ate a matriz pronta para classificacao em uma unica experiencia.',
   },
   {
     title: 'Operacao juridica centralizada',
-    description: 'Acompanhamento de escritorios, processos e subsidios com a identidade visual da Enter.',
+    description: 'Perfis diferentes para advogado externo e time interno do banco, com contexto proprio.',
   },
 ]
 
@@ -119,6 +120,43 @@ export const dashboardSections: readonly DashboardSection[] = [
       {
         title: 'Prioridades criticas',
         description: 'Concentre a agenda nos casos com prazo processual curto e contato de acordo pendente.',
+      },
+    ],
+  },
+  {
+    id: 'cases',
+    label: 'Casos',
+    shortDescription: 'Acompanhamento individual dos processos recebidos.',
+    heroTitle: 'Andamento de cada processo em uma visao operacional unica',
+    heroDescription: 'Monitora fase atual, proximas etapas e pendencias para cada caso inserido pelo advogado.',
+    tag: 'Carteira processual',
+    employeeMetrics: [
+      {
+        label: 'Casos monitorados',
+        value: '0',
+        description: 'Processos recebidos do fluxo do advogado e acompanhados pelo banco.',
+        trend: [18, 24, 33, 42, 51, 60],
+      },
+    ],
+    employeeNarrative:
+      'A tela de casos consolida o andamento real de cada processo, mostrando em que fase ele esta e qual a proxima acao necessaria.',
+    employeeTrend: [22, 35, 44, 52, 61, 72],
+    lawyerMetric: {
+      label: 'Casos ativos',
+      value: '0',
+      description: 'Resumo da carteira em processamento pelo advogado.',
+      trend: [20, 28, 34, 45, 54, 62],
+    },
+    lawyerNarrative:
+      'Visao consolidada de processos ativos e do progresso do pipeline para cada caso.',
+    lawyerTasks: [
+      {
+        title: 'Atualizar carteira',
+        description: 'Garantir que os documentos do processo estejam completos e consistentes.',
+      },
+      {
+        title: 'Concluir pendencias',
+        description: 'Executar o pipeline dos processos ainda nao processados.',
       },
     ],
   },

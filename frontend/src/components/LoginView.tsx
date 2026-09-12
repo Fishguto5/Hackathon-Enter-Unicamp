@@ -55,7 +55,7 @@ export function LoginView({
           <div className="login-card__header">
             <span className="login-card__eyebrow">Enter OS</span>
             <h1>Entrar na plataforma</h1>
-            <p>Escolha o perfil de acesso e use qualquer credencial para visualizar a tela principal.</p>
+            <p>Escolha o perfil de acesso e use qualquer credencial para entrar no fluxo correspondente.</p>
           </div>
 
           <div className="role-selector" aria-label="Tipo de login">
