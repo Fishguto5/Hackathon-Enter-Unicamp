@@ -172,3 +172,78 @@ A URL deve seguir o formato:
 ```
 https://github.com/<usuario-ou-org>/hackathon-ufmg-2026-grupo<N>
 ```
+
+---
+
+## 9. Executar a Solução
+
+### Pré-requisitos
+
+- Python 3.11 ou superior
+- Node.js 18 ou superior
+- npm 9 ou superior
+
+### 1. Configurar as variáveis de ambiente
+
+Na raiz do repositório, crie o arquivo de ambiente a partir do exemplo:
+
+```bash
+cp .env.example .env
+```
+
+Preencha `OPENAI_API_KEY` para habilitar a extração estruturada e o chat documental
+baseados na OpenAI. Sem a chave, o pipeline continua disponível com a extração
+heurística local. Mantenha `VITE_API_BASE_URL=http://127.0.0.1:5000` ou remova a
+variável para utilizar o proxy local do Vite.
+
+### 2. Iniciar o backend
+
+Em um primeiro terminal, na raiz do repositório:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r src/backend/requirements.txt
+python src/backend/app.py
+```
+
+A API Flask estará disponível em `http://127.0.0.1:5000`.
+
+### 3. Iniciar o frontend
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abra a URL indicada pelo Vite, normalmente `http://localhost:5173`.
+
+> Os processos desta versão de demonstração são mantidos somente em memória. Ao
+> reiniciar o backend, é necessário criar os processos e reenviar os PDFs.
+
+### Verificações
+
+```bash
+# Testes do backend (a partir da raiz, com o ambiente Python ativado)
+python -m unittest discover -s tests -p 'test_*.py'
+
+# Verificações do frontend
+cd frontend
+npm run lint
+npm run build
+```
+
+## 10. Tecnologias Utilizadas
+
+| Área | Tecnologias |
+|---|---|
+| Interface | React 18, TypeScript, Vite e CSS responsivo |
+| API | Python 3, Flask e repositório em memória para a demonstração |
+| Processamento de PDFs | `pypdf` para leitura e classificação dos documentos anexados |
+| Inteligência artificial | SDK da OpenAI para extração estruturada e chat documental com fontes |
+| Machine learning | scikit-learn, `LinearSVC` calibrado para probabilidade de êxito e Ridge Regression para estimativa de acordo |
+| Dados e exportação | pandas, NumPy, OpenPyXL e exportação em JSON/XLSX |
+| Segurança | Sanitizer determinístico contra prompt injection antes do conteúdo externo chegar ao modelo |
