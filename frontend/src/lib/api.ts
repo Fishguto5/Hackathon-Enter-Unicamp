@@ -100,6 +100,21 @@ export type LegalProcess = {
   final_response: string | null
 }
 
+export type CaseChatCitation = {
+  source_type: 'process' | 'document'
+  document_id: string | null
+  filename: string
+  line_start: number | null
+  line_end: number | null
+  excerpt: string
+}
+
+export type CaseChatResponse = {
+  answer: string
+  has_sufficient_evidence: boolean
+  citations: CaseChatCitation[]
+}
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL?.trim() || '/api').replace(/\/$/, '')
 const DIRECT_API_BASE_CANDIDATES = ['http://127.0.0.1:5000', 'http://localhost:5000']
 
@@ -284,6 +299,45 @@ export async function analyzeProcess(processId: string): Promise<LegalProcess> {
   })
 
   return parseJsonResponse<LegalProcess>(response)
+}
+
+export async function askProcessDocuments(
+  processId: string,
+  question: string,
+): Promise<CaseChatResponse> {
+  const response = await safeFetch(buildApiUrl(`/api/processes/${processId}/chat`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  })
+
+  return parseJsonResponse<CaseChatResponse>(response)
+}
+
+export async function loadProcessDocumentContent(
+  processId: string,
+  documentId: string,
+): Promise<string> {
+  const response = await safeFetch(
+    buildApiUrl(
+      `/api/processes/${encodeURIComponent(processId)}/documents/${encodeURIComponent(documentId)}/content`,
+    ),
+  )
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null
+    throw new Error(payload?.error ?? `Falha ao carregar o PDF. Status ${response.status}.`)
+  }
+
+  if (isHtmlResponse(response)) {
+    throw new Error('O leitor recebeu HTML em vez do PDF. Verifique se a API Flask esta em execucao.')
+  }
+
+  const file = await response.blob()
+  if (!file.size) {
+    throw new Error('O backend retornou um PDF vazio.')
+  }
+  return URL.createObjectURL(file)
 }
 
 export async function finalizeProcess(

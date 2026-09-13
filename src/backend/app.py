@@ -19,6 +19,14 @@ try:
     from .models import DocumentRecord, LawyerConfirmationRecord
     from .repository import InMemoryProcessRepository
     from .services.decision_service import DecisionModelService
+    from .services.case_chat_service import (
+        CaseChatDocument,
+        CaseChatInputError,
+        CaseChatResponseError,
+        CaseChatSafetyError,
+        CaseChatService,
+        CaseChatUnavailableError,
+    )
     from .services.document_service import classify_document, extract_text_from_bytes
     from .services.export_service import build_json_export, build_xlsx_export
     from .services.extraction_service import StructuredExtractionService
@@ -28,6 +36,14 @@ except ImportError:  # pragma: no cover - permite executar como script
     from src.backend.models import DocumentRecord, LawyerConfirmationRecord
     from src.backend.repository import InMemoryProcessRepository
     from src.backend.services.decision_service import DecisionModelService
+    from src.backend.services.case_chat_service import (
+        CaseChatDocument,
+        CaseChatInputError,
+        CaseChatResponseError,
+        CaseChatSafetyError,
+        CaseChatService,
+        CaseChatUnavailableError,
+    )
     from src.backend.services.document_service import classify_document, extract_text_from_bytes
     from src.backend.services.export_service import build_json_export, build_xlsx_export
     from src.backend.services.extraction_service import StructuredExtractionService
@@ -39,6 +55,7 @@ app = Flask(__name__)
 repository = InMemoryProcessRepository()
 extraction_service = StructuredExtractionService()
 decision_service = DecisionModelService()
+case_chat_service = CaseChatService()
 
 
 def build_recommendation_summary(
@@ -200,6 +217,61 @@ def format_brl(value: float) -> str:
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def build_case_chat_context(process: object) -> str:
+    """Build a concise, system-validated context for questions about the recommendation."""
+    lines: list[str] = []
+    extracted_data = getattr(process, "extracted_data", None)
+    if isinstance(extracted_data, dict):
+        subject = str(extracted_data.get("assunto") or "").strip()
+        claim_amount = extracted_data.get("valor_causa")
+        if subject:
+            lines.append(f"Assunto identificado: {subject}.")
+        if isinstance(claim_amount, (int, float)):
+            lines.append(f"Valor da causa identificado: R$ {format_brl(float(claim_amount))}.")
+
+    model_prediction = getattr(process, "model_prediction", None)
+    if isinstance(model_prediction, dict):
+        strategy = str(model_prediction.get("strategy") or "").strip().lower()
+        probability = model_prediction.get("probability_success")
+        threshold = model_prediction.get("threshold_success")
+        agreement_amount = model_prediction.get("agreement_amount_suggested")
+        if strategy in {"defesa", "acordo"}:
+            lines.append(f"Recomendacao do algoritmo: {strategy.upper()}.")
+        if isinstance(probability, (int, float)):
+            lines.append(f"Chance estimada de exito: {float(probability) * 100:.1f}%.")
+        if isinstance(threshold, (int, float)):
+            lines.append(f"Threshold da politica: {float(threshold) * 100:.1f}%.")
+        if isinstance(agreement_amount, (int, float)):
+            lines.append(
+                f"Valor sugerido para abertura de acordo: R$ {format_brl(float(agreement_amount))}."
+            )
+        elif strategy == "defesa":
+            lines.append("Nao ha valor de acordo sugerido porque a recomendacao atual e defesa.")
+
+    lawyer_confirmation = getattr(process, "lawyer_confirmation", None)
+    if lawyer_confirmation:
+        lines.append(
+            f"Estrategia final registrada pelo advogado: {lawyer_confirmation.final_strategy.upper()}."
+        )
+        if lawyer_confirmation.proposed_agreement_amount is not None:
+            lines.append(
+                "Valor proposto pelo advogado: "
+                f"R$ {format_brl(float(lawyer_confirmation.proposed_agreement_amount))}."
+            )
+
+    recommendation_summary = str(getattr(process, "recommendation_summary", "") or "").strip()
+    if recommendation_summary:
+        lines.append(f"Resumo da recomendacao: {recommendation_summary}")
+    decision_reasons = getattr(process, "decision_reasons", [])
+    if isinstance(decision_reasons, list):
+        lines.extend(
+            f"Razao da decisao: {str(reason).strip()}"
+            for reason in decision_reasons[:4]
+            if str(reason).strip()
+        )
+    return "\n".join(lines)
+
+
 def has_rejected_prompt_injection_assessment(process: object) -> bool:
     documents = getattr(process, "documents", [])
     return any(
@@ -207,6 +279,19 @@ def has_rejected_prompt_injection_assessment(process: object) -> bool:
         and document.security_assessment.get("decision") == "reject"
         for document in documents
     )
+
+
+def refresh_prompt_injection_assessments(process: object) -> bool:
+    """Scan documents at every model-entry point, not only during the main pipeline."""
+    for document in getattr(process, "documents", []):
+        assessment = extraction_service.inspect_document_safety(
+            document.filename,
+            document.extracted_text,
+        )
+        document.security_assessment = (
+            assessment if assessment["decision"] == "reject" else None
+        )
+    return has_rejected_prompt_injection_assessment(process)
 
 
 def without_internal_sanitizer_notes(notes: list[str]) -> list[str]:
@@ -315,7 +400,9 @@ def build_lawyer_confirmation_reasons(
 @app.route("/api/processes/<process_id>/analyze", methods=["OPTIONS"])
 @app.route("/api/processes/<process_id>/finalize", methods=["OPTIONS"])
 @app.route("/api/processes/<process_id>/export", methods=["OPTIONS"])
-def options_handler(process_id: str | None = None):
+@app.route("/api/processes/<process_id>/chat", methods=["OPTIONS"])
+@app.route("/api/processes/<process_id>/documents/<document_id>/content", methods=["OPTIONS"])
+def options_handler(process_id: str | None = None, document_id: str | None = None):
     return ("", HTTPStatus.NO_CONTENT)
 
 
@@ -392,6 +479,7 @@ def upload_documents(process_id: str):
             extracted_text=extracted_text,
             subsidy_hits=subsidy_hits,
             classification=document_type,
+            content_bytes=file_bytes,
         )
         process.documents.append(document)
         batch_notes.extend(notes)
@@ -427,16 +515,7 @@ def analyze_process(process_id: str):
     if not process.documents:
         return jsonify({"error": "Anexe documentos antes de processar."}), HTTPStatus.BAD_REQUEST
 
-    for document in process.documents:
-        assessment = extraction_service.inspect_document_safety(
-            document.filename,
-            document.extracted_text,
-        )
-        # Only confirmed prompt injection is exposed to the case workflow.
-        document.security_assessment = (
-            assessment if assessment["decision"] == "reject" else None
-        )
-    if has_rejected_prompt_injection_assessment(process):
+    if refresh_prompt_injection_assessments(process):
         apply_prompt_injection_defense(process)
         repository.save(process)
         return jsonify(process.to_dict())
@@ -498,6 +577,97 @@ def analyze_process(process_id: str):
     process.touch(status="processado")
     repository.save(process)
     return jsonify(process.to_dict())
+
+
+@app.route("/api/processes/<process_id>/chat", methods=["POST"])
+def chat_with_process_documents(process_id: str):
+    process = repository.get(process_id)
+    if not process:
+        return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
+    if not process.documents:
+        return jsonify({"error": "Anexe documentos antes de iniciar uma consulta."}), HTTPStatus.BAD_REQUEST
+
+    if refresh_prompt_injection_assessments(process):
+        apply_prompt_injection_defense(process)
+        repository.save(process)
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "A consulta documental foi bloqueada porque o pipeline confirmou prompt injection "
+                        "em um arquivo deste processo."
+                    )
+                }
+            ),
+            HTTPStatus.CONFLICT,
+        )
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Envie uma pergunta valida em JSON."}), HTTPStatus.BAD_REQUEST
+
+    try:
+        answer = case_chat_service.answer(
+            case_name=process.name,
+            question=str(payload.get("question") or ""),
+            documents=[
+                CaseChatDocument(
+                    document_id=document.id,
+                    filename=document.filename,
+                    text=document.extracted_text,
+                )
+                for document in process.documents
+            ],
+            case_context=build_case_chat_context(process),
+        )
+    except CaseChatInputError as exc:
+        return jsonify({"error": str(exc)}), HTTPStatus.BAD_REQUEST
+    except CaseChatSafetyError as exc:
+        return jsonify({"error": str(exc)}), HTTPStatus.UNPROCESSABLE_ENTITY
+    except CaseChatUnavailableError as exc:
+        return jsonify({"error": str(exc)}), HTTPStatus.SERVICE_UNAVAILABLE
+    except CaseChatResponseError as exc:
+        return jsonify({"error": str(exc)}), HTTPStatus.BAD_GATEWAY
+
+    return jsonify(answer)
+
+
+@app.route("/api/processes/<process_id>/documents/<document_id>/content", methods=["GET"])
+def read_process_document(process_id: str, document_id: str):
+    process = repository.get(process_id)
+    if not process:
+        return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
+
+    document = next((item for item in process.documents if item.id == document_id), None)
+    if not document:
+        return jsonify({"error": "Documento nao encontrado neste processo."}), HTTPStatus.NOT_FOUND
+    if not document.content_bytes:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "O arquivo original nao esta disponivel neste processo. "
+                        "Reenvie o PDF para habilitar a leitura."
+                    )
+                }
+            ),
+            HTTPStatus.GONE,
+        )
+    if not document.filename.lower().endswith(".pdf"):
+        return (
+            jsonify({"error": "A leitura visual integrada esta disponivel apenas para arquivos PDF."}),
+            HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+        )
+
+    response = send_file(
+        BytesIO(document.content_bytes),
+        mimetype="application/pdf",
+        as_attachment=False,
+        download_name=document.filename,
+    )
+    response.headers["Content-Security-Policy"] = "sandbox"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @app.route("/api/processes/<process_id>/finalize", methods=["POST"])

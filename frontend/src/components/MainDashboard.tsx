@@ -8,11 +8,14 @@ import {
 import { extractedFieldLabels, subsidyCatalog } from '../data/pipeline'
 import {
   analyzeProcess,
+  askProcessDocuments,
   createProcess,
   deleteProcess,
   downloadProcessExport,
   finalizeProcess,
   listProcesses,
+  loadProcessDocumentContent,
+  type CaseChatResponse,
   type LegalProcess,
   updateProcess,
   uploadProcessDocuments,
@@ -21,6 +24,14 @@ import {
 type LawyerConfirmationChoice = '' | 'seguir_algoritmo' | 'seguir_outra_estrategia'
 type StrategyOption = 'defesa' | 'acordo'
 type FinalAcceptanceStatus = '' | 'aceito' | 'nao_aceito'
+type ProcessDetailTab = 'analysis' | 'chat'
+type CaseChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  citations?: CaseChatResponse['citations']
+  hasSufficientEvidence?: boolean
+}
 
 type MainDashboardProps = {
   activeSection: DashboardSection['id']
@@ -831,6 +842,8 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   const [processes, setProcesses] = useState<LegalProcess[]>([])
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'overview' | 'cases' | 'case_detail'>('overview')
+  const [detailTab, setDetailTab] = useState<ProcessDetailTab>('analysis')
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
   const [processName, setProcessName] = useState('')
   const [processNameDraft, setProcessNameDraft] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
@@ -840,7 +853,10 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   const [alternativeStrategy, setAlternativeStrategy] = useState<StrategyOption>('defesa')
   const [finalAcceptanceStatus, setFinalAcceptanceStatus] = useState<FinalAcceptanceStatus>('')
   const [proposedAgreementValue, setProposedAgreementValue] = useState('')
+  const [chatQuestion, setChatQuestion] = useState('')
+  const [chatMessagesByProcess, setChatMessagesByProcess] = useState<Record<string, CaseChatMessage[]>>({})
   const [isBusy, setIsBusy] = useState(false)
+  const [isChatBusy, setIsChatBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -873,6 +889,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       setAlternativeStrategy('defesa')
       setFinalAcceptanceStatus('')
       setProposedAgreementValue('')
+      setSelectedDocumentId(null)
       return
     }
 
@@ -920,6 +937,11 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     setAlternativeStrategy(nextAlternativeStrategy)
     setFinalAcceptanceStatus(nextFinalAcceptanceStatus)
     setProposedAgreementValue(nextProposedAgreementValue)
+    setSelectedDocumentId((current) =>
+      current && selectedProcess.documents.some((document) => document.id === current)
+        ? current
+        : selectedProcess.documents[0]?.id ?? null,
+    )
   }, [selectedProcess])
 
   useEffect(() => {
@@ -971,16 +993,29 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       return [updated, ...remaining]
     })
     setSelectedProcessId(updated.id)
+    setSelectedDocumentId((current) =>
+      current && updated.documents.some((document) => document.id === current)
+        ? current
+        : updated.documents[0]?.id ?? null,
+    )
   }
 
   function removeProcess(processId: string) {
     const remaining = processes.filter((process) => process.id !== processId)
     setProcesses(remaining)
     setSelectedProcessId((current) => (current === processId ? remaining[0]?.id ?? null : current))
+    setChatMessagesByProcess((current) => {
+      const next = { ...current }
+      delete next[processId]
+      return next
+    })
   }
 
   function openProcessDetails(processId: string) {
+    const process = processes.find((item) => item.id === processId)
     setSelectedProcessId(processId)
+    setSelectedDocumentId(process?.documents[0]?.id ?? null)
+    setDetailTab('analysis')
     setActiveView('case_detail')
   }
 
@@ -1021,6 +1056,11 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     try {
       const updated = await uploadProcessDocuments(selectedProcess.id, pendingFiles)
       replaceProcess(updated)
+      setChatMessagesByProcess((current) => {
+        const next = { ...current }
+        delete next[selectedProcess.id]
+        return next
+      })
       setPendingFiles([])
       setFeedback('Arquivos enviados. Rode o pipeline para validar os arquivos e gerar a analise.')
     } catch (uploadError) {
@@ -1055,6 +1095,53 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       )
     } finally {
       setIsBusy(false)
+    }
+  }
+
+  async function handleAskProcessDocuments() {
+    if (!selectedProcess) {
+      setError('Selecione um processo para consultar os documentos.')
+      return
+    }
+    if (!chatQuestion.trim()) {
+      setError('Escreva uma pergunta sobre os documentos do processo.')
+      return
+    }
+    if (hasRejectedPromptInjection(selectedProcess)) {
+      setError('A consulta documental esta bloqueada porque o processo possui prompt injection confirmado.')
+      return
+    }
+
+    const question = chatQuestion.trim()
+    setIsChatBusy(true)
+    setError(null)
+    setFeedback(null)
+
+    try {
+      const response = await askProcessDocuments(selectedProcess.id, question)
+      setChatMessagesByProcess((current) => ({
+        ...current,
+        [selectedProcess.id]: [
+          ...(current[selectedProcess.id] ?? []),
+          {
+            id: `${selectedProcess.id}-question-${Date.now()}`,
+            role: 'user',
+            content: question,
+          },
+          {
+            id: `${selectedProcess.id}-answer-${Date.now()}`,
+            role: 'assistant',
+            content: response.answer,
+            citations: response.citations,
+            hasSufficientEvidence: response.has_sufficient_evidence,
+          },
+        ],
+      }))
+      setChatQuestion('')
+    } catch (chatError) {
+      setError(chatError instanceof Error ? chatError.message : 'Falha ao consultar os documentos.')
+    } finally {
+      setIsChatBusy(false)
     }
   }
 
@@ -1198,6 +1285,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   }
 
   const processStatus = selectedProcess ? getProcessStatusLabel(selectedProcess) : 'Sem selecao'
+  const selectedChatMessages = selectedProcess ? chatMessagesByProcess[selectedProcess.id] ?? [] : []
   const lawyerHeader =
     activeView === 'overview'
       ? {
@@ -1296,16 +1384,25 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
             onFinalAcceptanceStatusChange={setFinalAcceptanceStatus}
             onConfirmationChoiceChange={setConfirmationChoice}
             onDeleteProcess={handleDeleteProcess}
+            chatMessages={selectedChatMessages}
+            chatQuestion={chatQuestion}
+            detailTab={detailTab}
             onFinalResponseDraftChange={setFinalResponseDraft}
             onProcessNameDraftChange={setProcessNameDraft}
             onProposedAgreementValueChange={setProposedAgreementValue}
             onRefresh={loadProcesses}
             onOpenProcessDetails={openProcessDetails}
+            onAskDocumentQuestion={handleAskProcessDocuments}
             onBackToCases={() => setActiveView('cases')}
+            onChatQuestionChange={setChatQuestion}
+            onDetailTabChange={setDetailTab}
+            onDocumentSelect={setSelectedDocumentId}
+            isChatBusy={isChatBusy}
             processes={processes}
             processNameDraft={processNameDraft}
             proposedAgreementValue={proposedAgreementValue}
             selectedProcess={selectedProcess}
+            selectedDocumentId={selectedDocumentId}
             showDetail={activeView === 'case_detail'}
             onUpdateProcessName={handleUpdateProcessName}
           />
@@ -1713,15 +1810,23 @@ function DocumentSecurityResult({
 
 function LawyerProcessesScreen({
   alternativeStrategy,
+  chatMessages,
+  chatQuestion,
   confirmationChoice,
+  detailTab,
   finalResponseDraft,
   finalAcceptanceStatus,
   isBusy,
+  isChatBusy,
+  onAskDocumentQuestion,
   onFinalize,
   onAlternativeStrategyChange,
   onFinalAcceptanceStatusChange,
   onConfirmationChoiceChange,
   onDeleteProcess,
+  onChatQuestionChange,
+  onDetailTabChange,
+  onDocumentSelect,
   onFinalResponseDraftChange,
   onProcessNameDraftChange,
   onProposedAgreementValueChange,
@@ -1732,19 +1837,28 @@ function LawyerProcessesScreen({
   processNameDraft,
   proposedAgreementValue,
   selectedProcess,
+  selectedDocumentId,
   showDetail,
   onUpdateProcessName,
 }: {
   alternativeStrategy: StrategyOption
+  chatMessages: CaseChatMessage[]
+  chatQuestion: string
   confirmationChoice: LawyerConfirmationChoice
+  detailTab: ProcessDetailTab
   finalResponseDraft: string
   finalAcceptanceStatus: FinalAcceptanceStatus
   isBusy: boolean
+  isChatBusy: boolean
+  onAskDocumentQuestion: () => Promise<void>
   onFinalize: () => Promise<void>
   onAlternativeStrategyChange: (value: StrategyOption) => void
   onFinalAcceptanceStatusChange: (value: FinalAcceptanceStatus) => void
   onConfirmationChoiceChange: (value: LawyerConfirmationChoice) => void
   onDeleteProcess: () => Promise<void>
+  onChatQuestionChange: (value: string) => void
+  onDetailTabChange: (value: ProcessDetailTab) => void
+  onDocumentSelect: (documentId: string) => void
   onFinalResponseDraftChange: (value: string) => void
   onProcessNameDraftChange: (value: string) => void
   onProposedAgreementValueChange: (value: string) => void
@@ -1755,6 +1869,7 @@ function LawyerProcessesScreen({
   processNameDraft: string
   proposedAgreementValue: string
   selectedProcess: LegalProcess | null
+  selectedDocumentId: string | null
   showDetail: boolean
   onUpdateProcessName: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
@@ -1908,7 +2023,29 @@ function LawyerProcessesScreen({
           {!selectedProcess || !selectedSummary ? (
             <p>Selecione um processo para abrir os dados principais, o estado da analise e as razoes da decisão.</p>
           ) : (
-            <div className="lawyer-process-detail">
+            <>
+              <div className="process-detail-tabs" role="tablist" aria-label="Detalhes do processo">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'analysis'}
+                  className={`process-detail-tab${detailTab === 'analysis' ? ' is-active' : ''}`}
+                  onClick={() => onDetailTabChange('analysis')}
+                >
+                  Análise
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'chat'}
+                  className={`process-detail-tab${detailTab === 'chat' ? ' is-active' : ''}`}
+                  onClick={() => onDetailTabChange('chat')}
+                >
+                  Chat documental
+                </button>
+              </div>
+
+              {detailTab === 'analysis' ? <div className="lawyer-process-detail">
               <section className="lawyer-summary-block lawyer-summary-block--form">
                 <span>Gestao do processo</span>
                 <form className="pipeline-form" onSubmit={onUpdateProcessName}>
@@ -2225,11 +2362,295 @@ function LawyerProcessesScreen({
                     : 'Registrar resposta definitiva'}
                 </button>
               </div>
-            </div>
+              </div> : null}
+
+              {detailTab === 'chat' ? (
+                <div className="case-consultation-split">
+                  <ProcessDocumentReader
+                    onDocumentSelect={onDocumentSelect}
+                    process={selectedProcess}
+                    selectedDocumentId={selectedDocumentId}
+                  />
+                  <CaseDocumentChat
+                    isBusy={isChatBusy}
+                    messages={chatMessages}
+                    onDocumentOpen={onDocumentSelect}
+                    onQuestionChange={onChatQuestionChange}
+                    onSubmit={onAskDocumentQuestion}
+                    process={selectedProcess}
+                    question={chatQuestion}
+                  />
+                </div>
+              ) : null}
+            </>
           )}
         </article> : null}
       </section>
     </>
+  )
+}
+
+function CaseDocumentChat({
+  isBusy,
+  messages,
+  onDocumentOpen,
+  onQuestionChange,
+  onSubmit,
+  process,
+  question,
+}: {
+  isBusy: boolean
+  messages: CaseChatMessage[]
+  onDocumentOpen: (documentId: string) => void
+  onQuestionChange: (value: string) => void
+  onSubmit: () => Promise<void>
+  process: LegalProcess
+  question: string
+}) {
+  const isBlocked = hasRejectedPromptInjection(process)
+  const suggestions = [
+    'Qual e o valor liberado indicado nos documentos?',
+    'Quais documentos sustentam a regularidade da contratacao?',
+    'Ha divergencia entre o valor da causa e os valores da operacao?',
+  ]
+
+  return (
+    <section className="case-chat-panel" aria-label="Chat documental do processo">
+      <div className="case-chat-panel__header">
+        <div>
+          <span className="detail-card__eyebrow">Consulta fundamentada</span>
+          <h3>Pergunte sobre os documentos</h3>
+          <p>As respostas usam somente trechos dos PDFs deste processo e exibem as fontes consultadas.</p>
+        </div>
+        <span className="pipeline-card__tag">{process.documents.length} documentos</span>
+      </div>
+
+      {isBlocked ? (
+        <div className="case-chat-panel__blocked">
+          <strong>Consulta indisponivel para este processo.</strong>
+          <span>O pipeline confirmou prompt injection em um documento e bloqueou qualquer envio ao modelo.</span>
+        </div>
+      ) : (
+        <>
+          <div className="case-chat-suggestions" aria-label="Perguntas sugeridas">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                className="case-chat-suggestion"
+                onClick={() => onQuestionChange(suggestion)}
+                disabled={isBusy}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          <div className="case-chat-messages" aria-live="polite">
+            {messages.length === 0 ? (
+              <div className="case-chat-empty">
+                <strong>Nenhuma pergunta enviada ainda.</strong>
+                <span>Consulte valores, datas, alegacoes ou evidencias presentes nos PDFs.</span>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <article key={message.id} className={`case-chat-message is-${message.role}`}>
+                  <span>{message.role === 'user' ? 'Sua pergunta' : 'Resposta documental'}</span>
+                  <p>{message.content}</p>
+                  {message.role === 'assistant' && message.hasSufficientEvidence === false ? (
+                    <small className="case-chat-message__notice">Evidencia insuficiente nos trechos consultados.</small>
+                  ) : null}
+                  {message.citations && message.citations.length > 0 ? (
+                    <div className="case-chat-sources">
+                      <strong>Fontes consultadas</strong>
+                      {message.citations.map((citation) => (
+                        citation.document_id ? (
+                          <button
+                            key={`${message.id}-${citation.document_id}-${citation.line_start}`}
+                            type="button"
+                            className="case-chat-source"
+                            onClick={() => onDocumentOpen(citation.document_id as string)}
+                          >
+                            <span>{citation.filename}</span>
+                            <small>{`Linhas ${citation.line_start}-${citation.line_end}`}</small>
+                            <em>{citation.excerpt}</em>
+                          </button>
+                        ) : (
+                          <article key={`${message.id}-${citation.filename}`} className="case-chat-source is-process-source">
+                            <span>{citation.filename}</span>
+                            <small>Dados do processo</small>
+                            <em>{citation.excerpt}</em>
+                          </article>
+                        )
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+              ))
+            )}
+          </div>
+
+          <form
+            className="case-chat-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void onSubmit()
+            }}
+          >
+            <label htmlFor="document-chat-question">Sua pergunta</label>
+            <textarea
+              id="document-chat-question"
+              className="pipeline-textarea"
+              value={question}
+              onChange={(event) => onQuestionChange(event.target.value)}
+              placeholder="Ex.: Qual documento comprova a liberacao do credito?"
+              maxLength={600}
+              disabled={isBusy}
+            />
+            <div className="case-chat-form__footer">
+              <small>O chat nao substitui a revisao juridica do advogado.</small>
+              <button type="submit" className="submit-button" disabled={isBusy || !question.trim()}>
+                {isBusy ? 'Consultando documentos...' : 'Enviar pergunta'}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+    </section>
+  )
+}
+
+function ProcessDocumentReader({
+  onDocumentSelect,
+  process,
+  selectedDocumentId,
+}: {
+  onDocumentSelect: (documentId: string) => void
+  process: LegalProcess
+  selectedDocumentId: string | null
+}) {
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
+  const [isDocumentLoading, setIsDocumentLoading] = useState(false)
+  const pdfDocuments = process.documents.filter(
+    (document) =>
+      document.content_type.includes('pdf') || document.filename.toLowerCase().endsWith('.pdf'),
+  )
+  const selectedDocument =
+    pdfDocuments.find((document) => document.id === selectedDocumentId) ?? pdfDocuments[0] ?? null
+  const selectedDocumentContentId = selectedDocument?.id ?? null
+
+  useEffect(() => {
+    if (!selectedDocumentContentId) {
+      setDocumentUrl(null)
+      setDocumentError(null)
+      setIsDocumentLoading(false)
+      return
+    }
+
+    let disposed = false
+    let objectUrl: string | null = null
+    setDocumentUrl(null)
+    setDocumentError(null)
+    setIsDocumentLoading(true)
+
+    void loadProcessDocumentContent(process.id, selectedDocumentContentId)
+      .then((nextUrl) => {
+        objectUrl = nextUrl
+        if (disposed) {
+          URL.revokeObjectURL(nextUrl)
+          return
+        }
+        setDocumentUrl(nextUrl)
+      })
+      .catch((loadError) => {
+        if (!disposed) {
+          setDocumentError(
+            loadError instanceof Error ? loadError.message : 'Falha ao carregar o PDF.',
+          )
+        }
+      })
+      .finally(() => {
+        if (!disposed) {
+          setIsDocumentLoading(false)
+        }
+      })
+
+    return () => {
+      disposed = true
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [process.id, selectedDocumentContentId])
+
+  if (!selectedDocument) {
+    return (
+      <section className="document-reader-panel">
+        <div className="document-reader-panel__header">
+          <div>
+            <span className="detail-card__eyebrow">Leitura documental</span>
+            <h3>Nenhum PDF disponivel</h3>
+          </div>
+        </div>
+        <p>Envie um arquivo PDF para visualiza-lo nesta aba.</p>
+      </section>
+    )
+  }
+
+  function handleOpenInNewTab() {
+    if (documentUrl) {
+      window.open(documentUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  return (
+    <section className="document-reader-panel" aria-label="Leitor de documentos do processo">
+      <div className="document-reader-panel__header">
+        <div>
+          <span className="detail-card__eyebrow">Leitura documental</span>
+          <h3>PDFs anexados ao processo</h3>
+          <p>Escolha um arquivo para leitura sem sair da tela de detalhes.</p>
+        </div>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={handleOpenInNewTab}
+          disabled={!documentUrl || isDocumentLoading}
+        >
+          Abrir em nova aba
+        </button>
+      </div>
+
+      <div className="document-reader-layout">
+        <div className="document-reader-list" role="list">
+          {pdfDocuments.map((document) => (
+            <button
+              key={document.id}
+              type="button"
+              className={`document-reader-item${document.id === selectedDocument.id ? ' is-active' : ''}`}
+              onClick={() => onDocumentSelect(document.id)}
+            >
+              <strong>{document.filename}</strong>
+              <span>{formatFileSize(document.size_bytes)}</span>
+              {document.security_assessment ? <small>Prompt injection confirmado</small> : null}
+            </button>
+          ))}
+        </div>
+        <div className="document-reader-frame-wrap">
+          {isDocumentLoading ? <div className="document-reader-loading">Carregando PDF...</div> : null}
+          {documentError ? <div className="document-reader-error">{documentError}</div> : null}
+          {documentUrl ? (
+            <iframe
+              key={selectedDocument.id}
+              className="document-reader-frame"
+              title={`Leitor do documento ${selectedDocument.filename}`}
+              src={documentUrl}
+            />
+          ) : null}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -2238,6 +2659,13 @@ function formatDateTime(value: string) {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(value))
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+  return `${(bytes / 1024).toFixed(1)} KB`
 }
 
 function WorkspaceHeader({ heroTitle }: { heroTitle: string }) {

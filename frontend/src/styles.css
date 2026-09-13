@@ -2141,6 +2141,378 @@ input {
   background: rgba(255, 174, 53, 0.16);
 }
 
+.process-detail-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 18px;
+  background: #fff8ef;
+}
+
+.process-detail-tab {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 750;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.process-detail-tab:hover,
+.process-detail-tab:focus-visible {
+  color: var(--color-accent-strong);
+}
+
+.process-detail-tab.is-active {
+  border-color: rgba(255, 174, 53, 0.34);
+  background: #ffffff;
+  color: var(--color-dark);
+  box-shadow: 0 6px 14px rgba(95, 95, 95, 0.06);
+}
+
+.case-chat-panel,
+.document-reader-panel {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 174, 53, 0.14), transparent 32%),
+    linear-gradient(180deg, #fffefb 0%, #fff7ed 100%);
+}
+
+.case-consultation-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+
+.case-consultation-split > .case-chat-panel,
+.case-consultation-split > .document-reader-panel {
+  min-width: 0;
+  min-height: 700px;
+}
+
+.case-consultation-split .document-reader-layout {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.case-consultation-split .document-reader-list {
+  grid-auto-columns: minmax(190px, 1fr);
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  padding-right: 0;
+}
+
+.case-consultation-split .document-reader-frame {
+  min-height: 540px;
+}
+
+.case-chat-panel__header,
+.document-reader-panel__header,
+.case-chat-form__footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.case-chat-panel__header h3,
+.document-reader-panel__header h3 {
+  margin: 4px 0 0;
+  color: var(--color-dark);
+}
+
+.case-chat-panel__header p,
+.document-reader-panel__header p,
+.document-reader-panel > p {
+  max-width: 700px;
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.case-chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.case-chat-suggestion {
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 174, 53, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.case-chat-suggestion:hover,
+.case-chat-suggestion:focus-visible {
+  border-color: rgba(255, 174, 53, 0.58);
+  background: #fff4df;
+  color: var(--color-dark);
+}
+
+.case-chat-messages {
+  display: grid;
+  gap: 12px;
+  min-height: 190px;
+  max-height: 620px;
+  overflow: auto;
+  padding: 4px 2px;
+}
+
+.case-chat-empty,
+.case-chat-message {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(95, 95, 95, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.case-chat-empty {
+  place-content: center;
+  min-height: 150px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.case-chat-empty strong,
+.case-chat-message p {
+  margin: 0;
+}
+
+.case-chat-empty span,
+.case-chat-message > span,
+.case-chat-message__notice {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.case-chat-message > span {
+  color: var(--color-accent-strong);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.case-chat-message p {
+  color: var(--color-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.case-chat-message.is-user {
+  margin-left: min(16%, 160px);
+  border-color: rgba(255, 174, 53, 0.27);
+  background: #fff3dd;
+}
+
+.case-chat-message.is-assistant {
+  margin-right: min(8%, 80px);
+}
+
+.case-chat-message__notice {
+  color: #8a5b00;
+}
+
+.case-chat-sources {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(95, 95, 95, 0.1);
+}
+
+.case-chat-sources > strong {
+  color: var(--color-text);
+  font-size: 0.82rem;
+}
+
+.case-chat-source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 13px;
+  background: #fffdf9;
+  text-align: left;
+}
+
+.case-chat-source:hover,
+.case-chat-source:focus-visible {
+  border-color: rgba(255, 174, 53, 0.48);
+  background: #fff6e6;
+}
+
+.case-chat-source.is-process-source {
+  cursor: default;
+}
+
+.case-chat-source span {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-chat-source small {
+  color: var(--color-accent-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.case-chat-source em {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-chat-form {
+  display: grid;
+  gap: 9px;
+  padding-top: 4px;
+}
+
+.case-chat-form label {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.case-chat-form__footer {
+  align-items: center;
+}
+
+.case-chat-form__footer small {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.case-chat-panel__blocked {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid rgba(176, 49, 36, 0.2);
+  border-radius: 18px;
+  background: #fff5f3;
+}
+
+.case-chat-panel__blocked strong {
+  color: #8d2c1d;
+}
+
+.case-chat-panel__blocked span {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.document-reader-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.32fr) minmax(0, 1fr);
+  gap: 16px;
+  min-height: 620px;
+}
+
+.document-reader-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.document-reader-item {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(95, 95, 95, 0.12);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.document-reader-item:hover,
+.document-reader-item:focus-visible,
+.document-reader-item.is-active {
+  border-color: rgba(255, 174, 53, 0.44);
+  background: #fff3dd;
+}
+
+.document-reader-item strong {
+  color: var(--color-text);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.document-reader-item span,
+.document-reader-item small {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+}
+
+.document-reader-item small {
+  color: #9b3a2a;
+  font-weight: 700;
+}
+
+.document-reader-frame-wrap {
+  display: grid;
+  place-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(95, 95, 95, 0.12);
+  border-radius: 18px;
+  background: #f7f4ef;
+}
+
+.document-reader-loading,
+.document-reader-error {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 28px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.document-reader-error {
+  color: #8d2c1d;
+  line-height: 1.55;
+}
+
+.document-reader-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 620px;
+  border: 0;
+}
+
 .lawyer-process-detail {
   display: grid;
   gap: 18px;
@@ -2680,6 +3052,14 @@ input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .document-reader-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .case-consultation-split {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 @media (max-width: 720px) {
@@ -2715,6 +3095,29 @@ input {
 
   .agreement-editor__header {
     flex-direction: column;
+  }
+
+  .process-detail-tabs,
+  .case-chat-panel__header,
+  .document-reader-panel__header,
+  .case-chat-form__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .process-detail-tabs {
+    display: grid;
+  }
+
+  .case-chat-message.is-user,
+  .case-chat-message.is-assistant {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .document-reader-layout,
+  .document-reader-frame {
+    min-height: 480px;
   }
 
   .cost-simulator-hero,

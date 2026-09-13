@@ -71,6 +71,7 @@ class DocumentRecord:
     subsidy_hits: dict[str, int]
     classification: str = "nao identificado"
     security_assessment: dict[str, Any] | None = None
+    content_bytes: bytes = field(default=b"", repr=False)
 
     @classmethod
     def create(
@@ -83,6 +84,7 @@ class DocumentRecord:
         subsidy_hits: dict[str, int],
         classification: str = "nao identificado",
         security_assessment: dict[str, Any] | None = None,
+        content_bytes: bytes = b"",
     ) -> "DocumentRecord":
         return cls(
             id=str(uuid4()),
@@ -94,12 +96,14 @@ class DocumentRecord:
             subsidy_hits=subsidy_hits,
             classification=classification,
             security_assessment=security_assessment,
+            content_bytes=content_bytes,
         )
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["text_preview"] = self.extracted_text[:400]
         payload.pop("extracted_text", None)
+        payload.pop("content_bytes", None)
         return make_json_safe(payload)
 
 

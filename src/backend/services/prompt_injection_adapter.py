@@ -63,6 +63,22 @@ class EnterOSPromptInjectionAdapter:
             max_chars=self._classification_document_max_chars,
         )
 
+    def guard_chat_question(self, *, case_name: str, question: str) -> GuardedModelInput:
+        """Keep user-authored chat instructions out of the model conversation."""
+        return self._guard_single_text(
+            source_reference=f"process:{case_name}:chat_question",
+            text=question,
+            max_chars=1200,
+        )
+
+    def guard_chat_context(self, *, case_name: str, context: str) -> GuardedModelInput:
+        """Inspect the selected document excerpts before they are used for chat."""
+        return self._guard_single_text(
+            source_reference=f"process:{case_name}:chat_context",
+            text=context,
+            max_chars=12000,
+        )
+
     def guard_document_classification_batch(
         self,
         documents: list[tuple[str, str]],
