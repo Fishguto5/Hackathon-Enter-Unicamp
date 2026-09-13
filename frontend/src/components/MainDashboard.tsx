@@ -830,7 +830,7 @@ function EmployeeCasesView({
 function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogout'>) {
   const [processes, setProcesses] = useState<LegalProcess[]>([])
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null)
-  const [activeView, setActiveView] = useState<'overview' | 'cases'>('overview')
+  const [activeView, setActiveView] = useState<'overview' | 'cases' | 'case_detail'>('overview')
   const [processName, setProcessName] = useState('')
   const [processNameDraft, setProcessNameDraft] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
@@ -977,6 +977,11 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     const remaining = processes.filter((process) => process.id !== processId)
     setProcesses(remaining)
     setSelectedProcessId((current) => (current === processId ? remaining[0]?.id ?? null : current))
+  }
+
+  function openProcessDetails(processId: string) {
+    setSelectedProcessId(processId)
+    setActiveView('case_detail')
   }
 
   async function handleCreateProcess(event: FormEvent<HTMLFormElement>) {
@@ -1183,6 +1188,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     try {
       await deleteProcess(selectedProcess.id)
       removeProcess(selectedProcess.id)
+      setActiveView('cases')
       setFeedback('Processo excluido com sucesso.')
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Falha ao excluir o processo.')
@@ -1195,14 +1201,23 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   const lawyerHeader =
     activeView === 'overview'
       ? {
-          heroTitle: 'Visao consolidada da operacao juridica',
+          heroTitle: 'Visão consolidada da operação jurídica',
           heroDescription:
-            'Crie processos, suba PDFs e acompanhe o pipeline de extracao ate a recomendacao automatica.',
+            'Crie processos, suba PDFs e acompanhe o pipeline de extração ate a recomendacao automatica.',
           tag: 'Dashboard central',
-          sectionLabel: 'Inicio',
+          sectionLabel: 'Início',
           roleLabel: 'Advogado externo',
         }
-      : {
+      : activeView === 'case_detail'
+        ? {
+            heroTitle: 'Detalhe do processo selecionado',
+            heroDescription:
+              'Consulte os dados extraidos, a recomendacao, as razoes da decisao e a confirmacao final.',
+            tag: 'Detalhe do processo',
+            sectionLabel: 'Detalhe',
+            roleLabel: 'Advogado externo',
+          }
+        : {
           heroTitle: 'Carteira de processos criados com leitura orientada por status',
           heroDescription:
             'Abra cada caso para revisar os dados principais, a recomendacao gerada e as razoes da decisão automatica.',
@@ -1223,23 +1238,21 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
         </div>
 
         <div className="pipeline-sidebar__block">
-          <span className="pipeline-sidebar__eyebrow">Navegacao</span>
+          <span className="pipeline-sidebar__eyebrow">Navegação</span>
           <div className="pipeline-nav">
             <button
               type="button"
               className={`pipeline-nav__item${activeView === 'overview' ? ' is-active' : ''}`}
               onClick={() => setActiveView('overview')}
             >
-              <strong>Operacao</strong>
-              <span>Criar processo, subir PDFs e rodar pipeline</span>
+              <strong>Operação</strong>
             </button>
             <button
               type="button"
-              className={`pipeline-nav__item${activeView === 'cases' ? ' is-active' : ''}`}
+              className={`pipeline-nav__item${activeView !== 'overview' ? ' is-active' : ''}`}
               onClick={() => setActiveView('cases')}
             >
               <strong>Processos</strong>
-              <span>Revisar status, recomendacao e resposta final</span>
             </button>
           </div>
         </div>
@@ -1287,11 +1300,13 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
             onProcessNameDraftChange={setProcessNameDraft}
             onProposedAgreementValueChange={setProposedAgreementValue}
             onRefresh={loadProcesses}
-            onSelectProcess={setSelectedProcessId}
+            onOpenProcessDetails={openProcessDetails}
+            onBackToCases={() => setActiveView('cases')}
             processes={processes}
             processNameDraft={processNameDraft}
             proposedAgreementValue={proposedAgreementValue}
             selectedProcess={selectedProcess}
+            showDetail={activeView === 'case_detail'}
             onUpdateProcessName={handleUpdateProcessName}
           />
         )}
@@ -1383,7 +1398,7 @@ function LawyerOverviewScreen({
           <div className="pipeline-card__header">
             <div>
               <span className="detail-card__eyebrow">Etapa 1</span>
-              <h2>Criacao de processo</h2>
+              <h2>Criação de processo</h2>
             </div>
             <span className="pipeline-card__tag">Entrada</span>
           </div>
@@ -1449,7 +1464,7 @@ function LawyerOverviewScreen({
             <>
               <div className="process-summary">
                 <div>
-                  <span>Processo selecionado</span>
+                  <span>Processo selecionado </span>
                   <strong>{selectedProcess.name}</strong>
                 </div>
                 <div>
@@ -1711,11 +1726,13 @@ function LawyerProcessesScreen({
   onProcessNameDraftChange,
   onProposedAgreementValueChange,
   onRefresh,
-  onSelectProcess,
+  onOpenProcessDetails,
+  onBackToCases,
   processes,
   processNameDraft,
   proposedAgreementValue,
   selectedProcess,
+  showDetail,
   onUpdateProcessName,
 }: {
   alternativeStrategy: StrategyOption
@@ -1732,11 +1749,13 @@ function LawyerProcessesScreen({
   onProcessNameDraftChange: (value: string) => void
   onProposedAgreementValueChange: (value: string) => void
   onRefresh: () => Promise<void>
-  onSelectProcess: (processId: string) => void
+  onOpenProcessDetails: (processId: string) => void
+  onBackToCases: () => void
   processes: LegalProcess[]
   processNameDraft: string
   proposedAgreementValue: string
   selectedProcess: LegalProcess | null
+  showDetail: boolean
   onUpdateProcessName: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   const recommendationReadyCount = processes.filter(
@@ -1778,7 +1797,7 @@ function LawyerProcessesScreen({
     !hasRejectedDocument
   return (
     <>
-      <section className="metrics-grid" aria-label="Resumo da carteira processual">
+      {!showDetail ? <section className="metrics-grid" aria-label="Resumo da carteira processual">
         <article className="metric-card">
           <div className="metric-card__top">
             <div>
@@ -1814,10 +1833,10 @@ function LawyerProcessesScreen({
           <MiniChart data={finalSeries} emphasis="high" />
           <p>Processos em que o advogado ja consolidou a resposta definitiva na plataforma.</p>
         </article>
-      </section>
+      </section> : null}
 
-      <section className="insights-grid lawyer-cases-layout">
-        <article className="detail-card detail-card--wide">
+      <section className={`insights-grid lawyer-cases-layout${showDetail ? ' is-detail-view' : ''}`}>
+        {!showDetail ? <article className="detail-card detail-card--wide lawyer-process-list-card">
           <div className="detail-card__header">
             <div>
               <span className="detail-card__eyebrow">Tela de processos</span>
@@ -1835,38 +1854,55 @@ function LawyerProcessesScreen({
                 <p>Assim que um processo for criado e receber documentos, ele aparecera aqui como container clicavel.</p>
               </article>
             ) : (
-              processes.map((process) => {
+              processes.map((process, index) => {
                 const caseSummary = buildCaseSummary(process)
 
                 return (
                   <button
                     key={process.id}
                     type="button"
-                    className={`lawyer-process-card${process.id === selectedProcess?.id ? ' is-active' : ''}`}
-                    onClick={() => onSelectProcess(process.id)}
+                    className="lawyer-process-card"
+                    onClick={() => onOpenProcessDetails(process.id)}
                   >
                     <div className="lawyer-process-card__top">
-                      <span className="detail-card__eyebrow">Processo</span>
+                      <span className="detail-card__eyebrow">
+                        {`Processo ${String(index + 1).padStart(2, '0')}`}
+                      </span>
                       <span className={`case-stage-badge${caseSummary.isPending ? ' is-pending' : ' is-complete'}`}>
-                        {getAnalysisStateLabel(process.analysis_state)}
+                        {caseSummary.statusLabel}
                       </span>
                     </div>
-                    <strong>{process.name}</strong>
-                    <p>{caseSummary.currentStep}</p>
-                    <small>{caseSummary.caseNumber}</small>
+                    <div className="lawyer-process-card__status">
+                      <div>
+                        <span>Estado atual</span>
+                        <strong>{caseSummary.currentStep}</strong>
+                      </div>
+                    </div>
+                    <div className="lawyer-process-card__footer">
+                      <small>{caseSummary.updatedLabel}</small>
+                      <span>Ver processo</span>
+                    </div>
                   </button>
                 )
               })
             )}
           </div>
-        </article>
+        </article> : null}
 
-        <article className="detail-card">
+        {showDetail ? <article className="detail-card lawyer-process-detail-card">
           <div className="detail-card__header">
             <div>
               <span className="detail-card__eyebrow">Detalhe do processo</span>
               <h2>Dados principais e estado</h2>
             </div>
+            <button
+              type="button"
+              className="ghost-button process-detail-back-button"
+              onClick={onBackToCases}
+              aria-label="Voltar para a tela de processos"
+            >
+              &lt; Voltar para processos
+            </button>
           </div>
 
           {!selectedProcess || !selectedSummary ? (
@@ -2191,7 +2227,7 @@ function LawyerProcessesScreen({
               </div>
             </div>
           )}
-        </article>
+        </article> : null}
       </section>
     </>
   )
@@ -2259,6 +2295,7 @@ function getSecurityFindingLabel(ruleId: string) {
     privileged_role_spoofing: 'Simulacao de instrucao privilegiada',
     output_format_override: 'Tentativa de alterar o formato de retorno',
     field_tampering_instruction: 'Tentativa de alterar campos extraidos',
+    contextual_instruction_hijack: 'Instrucao ao modelo para substituir dados do processo',
     policy_or_tool_override: 'Tentativa de alterar politicas ou filtros',
     invisible_or_bidi_controls: 'Caracteres invisiveis ou direcionais',
     disallowed_control_characters: 'Caracteres de controle nao permitidos',
@@ -2787,14 +2824,14 @@ function buildEmployeeSectionMetrics(
       data: buildRecentCreationsSeries(processes),
     },
     {
-      label: 'Pendencias abertas',
+      label: 'Pendências abertas',
       value: formatValue(pendingCount),
       description: pendingDescription,
       supportingLabel: 'situacao atual',
       data: buildPipelineDistributionSeries(processes),
     },
     {
-      label: sectionId === 'results' ? 'Respostas finais' : 'Recomendacoes prontas',
+      label: sectionId === 'results' ? 'Respostas finais' : 'Recomendações prontas',
       value: formatValue(sectionId === 'results' ? finalCount : recommendationCount),
       description: outcomeDescription,
       supportingLabel: sectionId === 'results' ? 'encerramento juridico' : 'analise automatica',

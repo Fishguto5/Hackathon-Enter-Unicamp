@@ -63,7 +63,7 @@ export const loginOptions: readonly LoginOption[] = [
   },
   {
     id: 'employee',
-    label: 'Funcionario da empresa',
+    label: 'Funcionário da empresa',
     shortLabel: 'Time Banco Unicamp',
     description:
       'Acompanha taxa de processos, economia com defesa e indicadores de aderencia da politica de acordos.',
@@ -73,10 +73,10 @@ export const loginOptions: readonly LoginOption[] = [
 export const dashboardSections: readonly DashboardSection[] = [
   {
     id: 'home',
-    label: 'Inicio',
+    label: 'Início',
     shortDescription: 'Visao geral das frentes mais importantes do dia.',
-    heroTitle: 'Visao consolidada da operacao juridica',
-    heroDescription: 'Prioridades do dia, aderencia da politica e atalhos para navegar pela plataforma.',
+    heroTitle: 'Visão consolidada da operação jurídica',
+    heroDescription: 'Prioridades do dia, aderência da politica e atalhos para navegar pela plataforma.',
     tag: 'Dashboard central',
     employeeMetrics: [
       {
@@ -93,7 +93,7 @@ export const dashboardSections: readonly DashboardSection[] = [
       },
     ],
     employeeNarrative:
-      'A tela principal para funcionarios resume o comportamento da carteira e destaca ganhos financeiros, consistencia de decisao e gargalos da operacao.',
+      'A tela principal para funcionarios resume o comportamento da carteira e destaca ganhos financeiros, consistência de decisão e gargalos da operacão.',
     employeeTrend: [38, 52, 45, 61, 58, 74],
     lawyerMetric: {
       label: 'Fila principal',
@@ -153,7 +153,7 @@ export const dashboardSections: readonly DashboardSection[] = [
   },
   {
     id: 'additional_analysis',
-    label: 'Analise adicional',
+    label: 'Análise adicional',
     shortDescription: 'Simulador de custos e cenarios financeiros por processo.',
     heroTitle: 'Cenarios de custo para defesa e acordo',
     heroDescription:
@@ -204,7 +204,7 @@ export const dashboardSections: readonly DashboardSection[] = [
       trend: [20, 28, 34, 45, 54, 62],
     },
     lawyerNarrative:
-      'Visao consolidada de processos ativos e do progresso do pipeline para cada caso.',
+      'Visão consolidada de processos ativos e do progresso do pipeline para cada caso.',
     lawyerTasks: [
       {
         title: 'Atualizar carteira',
