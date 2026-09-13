@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from typing import Any
+import unicodedata
 
 
 EVIDENCE_WEIGHTS = {
@@ -12,11 +14,113 @@ EVIDENCE_WEIGHTS = {
     "laudo_referenciado": 5,
 }
 
+EVIDENCE_CONTEXT_TERMS = {
+    "contrato": ("cedula de credito", "contrato de emprestimo", "termo de contratacao"),
+    "extrato": ("extrato bancario", "extrato de movimentacao", "lancamentos"),
+    "comprovante_credito": ("comprovante de credito", "comprovante de operacao de credito"),
+    "dossie": ("peticao inicial", "acao declaratoria", "autos do processo"),
+    "evolucao_divida": ("demonstrativo de evolucao da divida", "saldo devedor", "parcelas liquidadas"),
+    "laudo_referenciado": ("laudo referenciado", "canal de contratacao e evidencias"),
+}
+
+
+def _normalize_for_search(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    return re.sub(r"\s+", " ", normalized).strip().lower()
+
+
+def _document_value(document: Any, field: str, default: str = "") -> str:
+    if isinstance(document, dict):
+        value = document.get(field, default)
+    else:
+        value = getattr(document, field, default)
+    return str(value or default)
+
+
+def _find_context_excerpt(text: str, evidence_key: str) -> str | None:
+    terms = EVIDENCE_CONTEXT_TERMS.get(evidence_key, ())
+    for raw_line in text.splitlines():
+        line = re.sub(r"[\x00-\x1f\x7f]+", " ", raw_line).strip()
+        if line and any(term in _normalize_for_search(line) for term in terms):
+            return line[:280]
+    return None
+
+
+def _evidence_sources(documents: list[Any] | None, evidence_key: str) -> list[dict[str, str | None]]:
+    sources = []
+    for document in documents or []:
+        if _document_value(document, "classification") != evidence_key:
+            continue
+        sources.append(
+            {
+                "filename": _document_value(document, "filename", "Documento sem nome"),
+                "excerpt": _find_context_excerpt(
+                    _document_value(document, "extracted_text"), evidence_key
+                ),
+            }
+        )
+    return sources
+
+
+def _has_extracted_value(value: Any) -> bool:
+    if isinstance(value, (int, float)):
+        return value > 0
+    return isinstance(value, str) and value.strip().lower() not in {"", "nao identificado"}
+
+
+def _format_currency(value: Any) -> str:
+    return f"R$ {float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _evidence_facts(evidence_key: str, extracted_data: dict[str, Any]) -> list[str]:
+    facts: list[str] = []
+
+    def add_text(label: str, field: str) -> None:
+        value = extracted_data.get(field)
+        if _has_extracted_value(value):
+            facts.append(f"{label}: {value}.")
+
+    def add_currency(label: str, field: str) -> None:
+        value = extracted_data.get(field)
+        if _has_extracted_value(value):
+            facts.append(f"{label}: {_format_currency(value)}.")
+
+    if evidence_key == "contrato":
+        add_text("Contrato identificado", "numero_contrato")
+        add_text("Data da contratacao", "data_contratacao")
+        add_currency("Valor da parcela", "valor_parcela")
+    elif evidence_key == "extrato":
+        add_text("Conta creditada", "conta_creditada")
+        add_currency("Valor liberado", "valor_liberado")
+        add_text("Data de liberacao", "data_liberacao_credito")
+    elif evidence_key == "comprovante_credito":
+        add_currency("Credito informado", "valor_liberado")
+        add_text("Data de liberacao", "data_liberacao_credito")
+        add_text("Conta creditada", "conta_creditada")
+    elif evidence_key == "dossie":
+        add_text("Assunto processual", "assunto")
+        if extracted_data.get("alegacao_fraude") == "sim":
+            facts.append("Alegacao de fraude identificada nos autos.")
+        if extracted_data.get("negacao_contratacao") == "sim":
+            facts.append("Negacao da contratacao identificada nos autos.")
+    elif evidence_key == "evolucao_divida":
+        add_text("Parcelas liquidadas", "parcelas_liquidadas")
+        add_currency("Saldo devedor", "saldo_devedor")
+        add_currency("Valor da parcela", "valor_parcela")
+    elif evidence_key == "laudo_referenciado":
+        add_text("Canal de contratacao", "canal_contratacao")
+        add_text("Contrato identificado", "numero_contrato")
+        add_currency("Valor total pactuado", "valor_total_pactuado")
+
+    return facts
+
 
 def build_case_intelligence(
     extracted_data: dict[str, Any],
     subsidies: dict[str, int],
     model_prediction: dict[str, Any] | None,
+    documents: list[Any] | None = None,
 ) -> dict[str, Any]:
     evidence = []
     raw_ifp = 0.0
@@ -35,6 +139,8 @@ def build_case_intelligence(
             "weight": weight,
             "multiplier": 1.0 if present else 0.0,
             "contribution": contribution,
+            "source_documents": _evidence_sources(documents, key) if present else [],
+            "facts_considered": _evidence_facts(key, extracted_data) if present else [],
         })
 
     penalties = 0.0

@@ -1720,6 +1720,147 @@ input {
   padding: 16px 18px;
 }
 
+.document-preview-card {
+  display: grid;
+  gap: 12px;
+}
+
+.document-security-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 20px;
+  background: #fffdfa;
+}
+
+.document-security-panel__header,
+.document-security-result__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.document-security-panel__header h3 {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: 1rem;
+}
+
+.document-security-panel__description,
+.document-security-result p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.document-security-panel__list {
+  display: grid;
+  gap: 10px;
+}
+
+.document-security-panel__item {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgba(95, 95, 95, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.document-security-panel__item > strong {
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 0.88rem;
+}
+
+.document-security-result {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgba(95, 95, 95, 0.13);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.document-security-result.is-allow {
+  border-color: rgba(35, 131, 73, 0.26);
+  background: #f4fcf7;
+}
+
+.document-security-result.is-review,
+.document-security-result.is-pending {
+  border-color: rgba(210, 138, 24, 0.28);
+  background: #fff9ee;
+}
+
+.document-security-result.is-reject {
+  border-color: rgba(176, 49, 36, 0.28);
+  background: #fff4f1;
+}
+
+.document-security-result__header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.document-security-result__header span {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.document-security-result__header strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.document-security-result__header small,
+.document-security-result__changes {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.document-security-result__header small {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.document-security-result__findings {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-security-result__findings li {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border-left: 2px solid var(--color-accent);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.document-security-result__findings strong {
+  color: var(--color-text);
+  font-size: 0.8rem;
+}
+
+.document-security-result__findings span {
+  color: var(--color-text-muted);
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
 .field-card strong,
 .subsidy-card strong {
   display: block;
@@ -1886,7 +2027,7 @@ input {
 }
 
 .lawyer-process-board {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .lawyer-process-card,
@@ -1899,8 +2040,9 @@ input {
 
 .lawyer-process-card {
   display: grid;
-  gap: 10px;
-  padding: 18px;
+  gap: 16px;
+  min-height: 156px;
+  padding: 24px 28px;
   text-align: left;
   transition:
     transform 180ms ease,
@@ -1941,6 +2083,62 @@ input {
   margin: 0;
   color: var(--color-text-muted);
   line-height: 1.6;
+}
+
+.lawyer-process-card__status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.lawyer-process-card__status > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border-left: 2px solid rgba(255, 174, 53, 0.46);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.lawyer-process-card__status span,
+.lawyer-process-card__footer small {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.lawyer-process-card__status strong {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.lawyer-process-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lawyer-process-card__footer > span {
+  color: var(--color-accent-strong);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.lawyer-cases-layout.is-detail-view {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.process-detail-back-button {
+  flex: 0 0 auto;
+  border-color: rgba(255, 174, 53, 0.42);
+  background: #fff8ec;
+  color: var(--color-accent-strong);
+  font-weight: 800;
+}
+
+.process-detail-back-button:hover,
+.process-detail-back-button:focus-visible {
+  border-color: var(--color-accent);
+  background: rgba(255, 174, 53, 0.16);
 }
 
 .lawyer-process-detail {
@@ -2209,12 +2407,279 @@ input {
   line-height: 1.7;
 }
 
+.cost-simulator-hero,
+.cost-forecast-card,
+.cost-input-card,
+.cost-scenarios-card,
+.cost-method-card {
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 20px 42px rgba(95, 95, 95, 0.07),
+    0 8px 18px rgba(255, 174, 53, 0.06);
+}
+
+.cost-simulator-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 174, 53, 0.2), transparent 42%),
+    linear-gradient(135deg, #ffffff 0%, #fff6e8 100%);
+}
+
+.cost-simulator-hero h2,
+.cost-input-card h2,
+.cost-scenarios-card h2 {
+  margin: 0;
+  color: var(--color-dark);
+}
+
+.cost-simulator-hero p {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.cost-simulator-hero__actions {
+  display: grid;
+  gap: 9px;
+  padding: 18px;
+  border: 1px solid rgba(255, 174, 53, 0.2);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.cost-simulator-hero__actions label {
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cost-simulator-hero__actions select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(95, 95, 95, 0.18);
+  border-radius: 12px;
+  color: var(--color-text);
+  background: #ffffff;
+}
+
+.cost-simulator-hero__actions select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(255, 174, 53, 0.14);
+}
+
+.cost-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cost-forecast-card {
+  display: grid;
+  gap: 8px;
+  min-height: 156px;
+  padding: 21px;
+  border-radius: 22px;
+}
+
+.cost-forecast-card--claim {
+  border-color: rgba(255, 143, 0, 0.38);
+  background:
+    radial-gradient(circle at top right, rgba(255, 174, 53, 0.2), transparent 55%),
+    linear-gradient(145deg, #fff5e4 0%, #ffffff 78%);
+}
+
+.cost-forecast-card span,
+.cost-forecast-card small {
+  color: var(--color-text-muted);
+}
+
+.cost-forecast-card span {
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cost-forecast-card strong {
+  color: var(--color-dark);
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  line-height: 1;
+}
+
+.cost-forecast-card small {
+  line-height: 1.45;
+}
+
+.cost-input-card,
+.cost-scenarios-card,
+.cost-method-card {
+  padding: 26px;
+  border-radius: 28px;
+}
+
+.cost-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cost-input-grid,
+.cost-scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cost-input-grid label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cost-input-grid input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid rgba(95, 95, 95, 0.18);
+  border-radius: 13px;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  background: #ffffff;
+}
+
+.cost-input-grid input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(255, 174, 53, 0.14);
+}
+
+.cost-input-card__note,
+.cost-method-card p {
+  margin: 18px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.cost-scenarios-card__tag {
+  padding: 9px 12px;
+  border: 1px solid rgba(35, 131, 73, 0.2);
+  border-radius: 999px;
+  color: #1d7140;
+  background: #eefbf3;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cost-scenario {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 270px;
+  padding: 20px;
+  border: 1px solid rgba(95, 95, 95, 0.12);
+  border-radius: 22px;
+  background: #fffdfa;
+}
+
+.cost-scenario.is-lowest-cost {
+  border-color: rgba(35, 131, 73, 0.35);
+  background:
+    radial-gradient(circle at top right, rgba(81, 170, 112, 0.16), transparent 42%),
+    linear-gradient(180deg, #f4fcf7 0%, #fffdfa 76%);
+}
+
+.cost-scenario__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-text);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.cost-scenario__header small {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #1d7140;
+  background: #e7f7ed;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cost-scenario > strong {
+  color: var(--color-dark);
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  line-height: 1;
+}
+
+.cost-scenario p {
+  min-height: 44px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.cost-scenario__breakdown {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(95, 95, 95, 0.1);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.cost-scenario__breakdown span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cost-scenario__breakdown b {
+  color: var(--color-text);
+  font-size: 0.84rem;
+}
+
+.cost-method-card {
+  background:
+    linear-gradient(135deg, rgba(255, 246, 232, 0.9), rgba(255, 255, 255, 0.96));
+}
+
 @media (max-width: 1180px) {
   .pipeline-shell,
   .pipeline-hero,
-  .pipeline-grid {
+  .pipeline-grid,
+  .cost-simulator-hero {
     grid-template-columns: 1fr;
   }
+
+  .cost-input-grid,
+  .cost-scenarios-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
 }
 
 @media (max-width: 720px) {
@@ -2234,9 +2699,13 @@ input {
   .process-summary,
   .lawyer-process-board,
   .lawyer-detail-grid,
+  .lawyer-process-card__status,
   .decision-spotlight__metrics,
   .decision-choice-grid,
-  .agreement-editor__grid {
+  .agreement-editor__grid,
+  .cost-forecast-grid,
+  .cost-input-grid,
+  .cost-scenarios-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2245,6 +2714,19 @@ input {
   }
 
   .agreement-editor__header {
+    flex-direction: column;
+  }
+
+  .cost-simulator-hero,
+  .cost-input-card,
+  .cost-scenarios-card,
+  .cost-method-card {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .cost-section-header {
+    align-items: flex-start;
     flex-direction: column;
   }
 }

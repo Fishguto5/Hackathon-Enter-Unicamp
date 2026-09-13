@@ -28,8 +28,8 @@ export function LoginView({
             <span className="brand-mark__text">EnterOS</span>
           </div>
           <p className="brand-panel__lead">
-            Enterprise AI para operacoes juridicas em escala com decisao assistida e
-            operacao centralizada.
+            Enterprise AI para operações jurídicas em escala com decisão assistida e
+            operação centralizada.
           </p>
         </div>
       </section>
@@ -87,7 +87,7 @@ export function LoginView({
             />
 
             <button type="submit" className="submit-button">
-              Fazer autenticacao
+              Fazer autenticação
             </button>
           </form>
         </div>

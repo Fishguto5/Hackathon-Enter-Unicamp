@@ -22,6 +22,7 @@ type TaskItem = {
 export type DashboardSectionId =
   | 'home'
   | 'insights'
+  | 'additional_analysis'
   | 'cases'
   | 'triage'
   | 'policy'
@@ -62,7 +63,7 @@ export const loginOptions: readonly LoginOption[] = [
   },
   {
     id: 'employee',
-    label: 'Funcionario da empresa',
+    label: 'Funcionário da empresa',
     shortLabel: 'Time Banco Unicamp',
     description:
       'Acompanha taxa de processos, economia com defesa e indicadores de aderencia da politica de acordos.',
@@ -72,10 +73,10 @@ export const loginOptions: readonly LoginOption[] = [
 export const dashboardSections: readonly DashboardSection[] = [
   {
     id: 'home',
-    label: 'Inicio',
+    label: 'Início',
     shortDescription: 'Visao geral das frentes mais importantes do dia.',
-    heroTitle: 'Visao consolidada da operacao juridica',
-    heroDescription: 'Prioridades do dia, aderencia da politica e atalhos para navegar pela plataforma.',
+    heroTitle: 'Visão consolidada da operação jurídica',
+    heroDescription: 'Prioridades do dia, aderência da politica e atalhos para navegar pela plataforma.',
     tag: 'Dashboard central',
     employeeMetrics: [
       {
@@ -92,7 +93,7 @@ export const dashboardSections: readonly DashboardSection[] = [
       },
     ],
     employeeNarrative:
-      'A tela principal para funcionarios resume o comportamento da carteira e destaca ganhos financeiros, consistencia de decisao e gargalos da operacao.',
+      'A tela principal para funcionarios resume o comportamento da carteira e destaca ganhos financeiros, consistência de decisão e gargalos da operacão.',
     employeeTrend: [38, 52, 45, 61, 58, 74],
     lawyerMetric: {
       label: 'Fila principal',
@@ -151,6 +152,34 @@ export const dashboardSections: readonly DashboardSection[] = [
     ],
   },
   {
+    id: 'additional_analysis',
+    label: 'Análise adicional',
+    shortDescription: 'Simulador de custos e cenarios financeiros por processo.',
+    heroTitle: 'Cenarios de custo para defesa e acordo',
+    heroDescription:
+      'Compare a exposicao prevista pelo modelo com custos operacionais e uma proposta de acordo personalizada.',
+    tag: 'Simulacao financeira',
+    employeeMetrics: [
+      {
+        label: 'Cenarios financeiros',
+        value: '0',
+        description: 'Defesa, acordo recomendado e proposta personalizada.',
+        trend: [0, 0, 0, 0, 0, 0],
+      },
+    ],
+    employeeNarrative:
+      'A simulacao permite comparar a exposicao prevista e os custos operacionais sem alterar a decisao do advogado.',
+    employeeTrend: [0, 0, 0, 0, 0, 0],
+    lawyerMetric: {
+      label: 'Analise adicional',
+      value: 'Disponivel ao banco',
+      description: 'Tela destinada exclusivamente ao acompanhamento interno da instituicao.',
+      trend: [0, 0, 0, 0, 0, 0],
+    },
+    lawyerNarrative: '',
+    lawyerTasks: [],
+  },
+  {
     id: 'cases',
     label: 'Casos',
     shortDescription: 'Acompanhamento individual dos processos recebidos.',
@@ -175,7 +204,7 @@ export const dashboardSections: readonly DashboardSection[] = [
       trend: [20, 28, 34, 45, 54, 62],
     },
     lawyerNarrative:
-      'Visao consolidada de processos ativos e do progresso do pipeline para cada caso.',
+      'Visão consolidada de processos ativos e do progresso do pipeline para cada caso.',
     lawyerTasks: [
       {
         title: 'Atualizar carteira',
@@ -190,9 +219,9 @@ export const dashboardSections: readonly DashboardSection[] = [
   {
     id: 'triage',
     label: 'Analise inicial',
-    shortDescription: 'Entrada dos autos e classificacao do caso.',
-    heroTitle: 'Documentos, risco e contexto do processo em um unico ponto',
-    heroDescription: 'Organiza autos e subsidios para acelerar a primeira recomendacao.',
+    shortDescription: 'Entrada dos autos e classificação do caso.',
+    heroTitle: 'Documentos, risco e contexto do processo em um único ponto',
+    heroDescription: 'Organiza autos e subsídios para acelerar a primeira recomendaçao.',
     tag: 'Entrada da operacao',
     employeeMetrics: [
       {
@@ -203,7 +232,7 @@ export const dashboardSections: readonly DashboardSection[] = [
       },
     ],
     employeeNarrative:
-      'A triagem permite enxergar o volume que entrou, quanto ja esta classificado e quais casos ainda aguardam subsidios.',
+      'A triagem permite enxergar o volume que entrou, quanto ja esta classificado e quais casos ainda aguardam subsídios.',
     employeeTrend: [22, 34, 47, 55, 63, 71],
     lawyerMetric: {
       label: 'Entradas do dia',
@@ -228,22 +257,22 @@ export const dashboardSections: readonly DashboardSection[] = [
     id: 'policy',
     label: 'Politica de acordos',
     shortDescription: 'Regras para defesa ou proposta de acordo.',
-    heroTitle: 'Consistencia da politica aplicada em toda a carteira',
+    heroTitle: 'Consistência da politica aplicada em toda a carteira',
     heroDescription: 'Mostra onde a decisao juridica aderiu ou desviou do racional esperado.',
     tag: 'Governanca',
     employeeMetrics: [
       {
-        label: 'Aderencia a politica',
+        label: 'Aderência a política',
         value: '91%',
         description: 'Decisoes tomadas de acordo com as faixas de risco e de oferta definidas.',
         trend: [52, 58, 63, 72, 81, 91],
       },
     ],
     employeeNarrative:
-      'A visao de governanca destaca onde a politica esta sendo seguida e onde ha espacamento entre recomendacao e decisao efetiva.',
+      'A visão de governança destaca onde a política esta sendo seguida e onde ha espacamento entre recomendaçao e decisão efetiva.',
     employeeTrend: [49, 56, 59, 66, 73, 91],
     lawyerMetric: {
-      label: 'Desvios de politica',
+      label: 'Desvios de política',
       value: '12 alertas',
       description: 'Casos cuja estrategia sugerida exige justificativa antes do envio.',
       trend: [68, 59, 44, 36, 24, 18],
