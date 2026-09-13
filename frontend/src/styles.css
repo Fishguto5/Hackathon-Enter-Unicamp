@@ -546,6 +546,16 @@ input {
   gap: 16px;
 }
 
+.metrics-grid--insights {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.insights-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
 .metric-card {
   padding: 22px;
   display: grid;
@@ -732,6 +742,75 @@ input {
 
 .detail-card--wide {
   min-height: 100%;
+}
+
+.insight-hero-card {
+  display: grid;
+  gap: 18px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(255, 214, 152, 0.22), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 234, 0.96));
+}
+
+.insight-hero-card--legal {
+  background:
+    radial-gradient(circle at top left, rgba(31, 111, 72, 0.12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(255, 174, 53, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffefb 0%, #fff5ea 100%);
+}
+
+.insight-hero-card--finance {
+  background:
+    radial-gradient(circle at top right, rgba(184, 106, 0, 0.14), transparent 26%),
+    radial-gradient(circle at bottom left, rgba(255, 174, 53, 0.16), transparent 30%),
+    linear-gradient(180deg, #fffdf9 0%, #fff2df 100%);
+}
+
+.insight-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.insight-stat-strip--stacked {
+  grid-template-columns: 1fr;
+}
+
+.insight-stat-pill,
+.insight-impact-note {
+  border: 1px solid rgba(255, 174, 53, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.insight-stat-pill {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.insight-stat-pill span,
+.insight-impact-note {
+  color: var(--color-text-muted);
+}
+
+.insight-stat-pill strong {
+  color: var(--color-dark);
+  font-size: 1.2rem;
+}
+
+.insight-metric-card {
+  border: 1px solid rgba(255, 174, 53, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(255, 214, 152, 0.18), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 249, 241, 0.98));
+  align-content: start;
+}
+
+.insight-impact-note {
+  padding: 14px 16px;
+  line-height: 1.6;
 }
 
 .detail-card__header,
@@ -969,7 +1048,12 @@ input {
 
   .metrics-grid,
   .dashboard-grid,
-  .insights-grid {
+  .insights-grid,
+  .insights-panel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metrics-grid--insights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -979,7 +1063,10 @@ input {
   .workspace-nav,
   .metrics-grid,
   .dashboard-grid,
-  .insights-grid {
+  .insights-grid,
+  .insights-panel-grid,
+  .metrics-grid--insights,
+  .insight-stat-strip {
     grid-template-columns: 1fr;
   }
 
@@ -1368,6 +1455,10 @@ input {
   margin-top: 0;
 }
 
+.process-management-actions {
+  justify-content: space-between;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1584,6 +1675,19 @@ input {
 
 .lawyer-summary-block--form {
   gap: 16px;
+}
+
+.danger-button {
+  border-color: rgba(176, 49, 36, 0.2);
+  color: #9b3a2a;
+  background: #fff5f3;
+}
+
+.danger-button:hover,
+.danger-button:focus-visible {
+  border-color: rgba(176, 49, 36, 0.32);
+  background: #ffeae5;
+  color: #8d2c1d;
 }
 
 .decision-spotlight {
