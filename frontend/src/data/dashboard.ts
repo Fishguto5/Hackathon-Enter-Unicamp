@@ -69,17 +69,6 @@ export const loginOptions: readonly LoginOption[] = [
   },
 ]
 
-export const loginHighlights = [
-  {
-    title: 'Fluxo juridico com IA',
-    description: 'Da ingestao dos autos ate a matriz pronta para classificacao em uma unica experiencia.',
-  },
-  {
-    title: 'Operacao juridica centralizada',
-    description: 'Perfis diferentes para advogado externo e time interno do banco, com contexto proprio.',
-  },
-]
-
 export const dashboardSections: readonly DashboardSection[] = [
   {
     id: 'home',
@@ -130,7 +119,7 @@ export const dashboardSections: readonly DashboardSection[] = [
     shortDescription: 'Impacto juridico, financeiro e governanca da carteira.',
     heroTitle: 'Leitura executiva da carteira com foco em resultado',
     heroDescription: 'Transforma os processos da base em indicadores de exito, perdas evitadas, acordos e overrides.',
-    tag: 'Painel executivo',
+    tag: '',
     employeeMetrics: [
       {
         label: 'Taxa de exito',

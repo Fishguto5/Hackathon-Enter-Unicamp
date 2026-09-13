@@ -50,6 +50,25 @@ export type LegalProcess = {
     binary_subsidies: string[]
     missing_safe_defaults: Record<string, string | number>
   } | null
+  case_intelligence: {
+    evidence: Array<{
+      key: string
+      status: string
+      weight: number
+      multiplier: number
+      contribution: number
+    }>
+    ifp: number
+    ifp_raw: number
+    penalties: number
+    document_completeness: number
+    legal_risk: number
+    expected_defense_cost_brl: number
+    expected_agreement_cost_brl: number
+    financial_priority: string
+    human_review_recommended: boolean
+    drivers: string[]
+  } | null
   processing_notes: string[]
   recommendation_summary: string | null
   decision_reasons: string[]

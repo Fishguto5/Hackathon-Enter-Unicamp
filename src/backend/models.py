@@ -128,6 +128,7 @@ class ProcessRecord:
     model_prediction: dict[str, Any] | None = None
     lawyer_confirmation: LawyerConfirmationRecord | None = None
     preprocessing_summary: dict[str, Any] | None = None
+    case_intelligence: dict[str, Any] | None = None
     processing_notes: list[str] = field(default_factory=list)
     recommendation_summary: str | None = None
     decision_reasons: list[str] = field(default_factory=list)
@@ -168,6 +169,7 @@ class ProcessRecord:
                 self.lawyer_confirmation.to_dict() if self.lawyer_confirmation else None
             ),
             "preprocessing_summary": self.preprocessing_summary,
+            "case_intelligence": self.case_intelligence,
             "processing_notes": self.processing_notes,
             "recommendation_summary": self.recommendation_summary,
             "decision_reasons": self.decision_reasons,

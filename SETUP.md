@@ -77,6 +77,23 @@ npm run lint
 npm run preview
 ```
 
+## Testes do Sanitizer
+
+O repositório agora inclui uma suíte `unittest` para o sanitizer anti prompt injection e para a integração
+do fluxo real de extração do advogado:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
+Para uma avaliação real opcional com fixtures fictícias de controle e variantes adversariais:
+
+```bash
+OPENAI_API_KEY=... python3 -m src.backend.run_prompt_injection_real_eval
+```
+
+Consulte [docs/SANITIZER.md](/home/gustavo-fernandes/Hackathon-Enter-Unicamp/docs/SANITIZER.md:1) para detalhes de arquitetura, limites e cobertura.
+
 ## Fluxo esperado
 
 1. Criar um processo na interface.

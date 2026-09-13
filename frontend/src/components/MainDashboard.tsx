@@ -7,7 +7,6 @@ import {
 } from '../data/dashboard'
 import {
   extractedFieldLabels,
-  pipelineStages,
   subsidyCatalog,
 } from '../data/pipeline'
 import {
@@ -46,21 +45,93 @@ type InsightMetricCard = {
   description: string
   impact: string
   supportingLabel: string
+  tone: 'emerald' | 'cyan' | 'amber' | 'violet'
 }
 
-type InsightSummaryCard = {
-  eyebrow: string
+type InsightChartPoint = {
   title: string
-  description: string
-  spotlight: string
-  supportingStats: Array<{ label: string; value: string }>
+  shortLabel: string
+  value: number
+  secondaryValue: string
+}
+
+type InsightChartSeries = {
+  label: string
+  colorClassName: string
+  lineStyle?: 'solid' | 'dashed'
+  points: InsightChartPoint[]
 }
 
 type EmployeeInsightsSnapshot = {
   metrics: InsightMetricCard[]
-  legalSummary: InsightSummaryCard
-  financialSummary: InsightSummaryCard
+  chart: {
+    title: string
+    description: string
+    spotlight: string
+    series: InsightChartSeries[]
+  }
 }
+
+const EXECUTIVE_INSIGHTS_FIXTURE = {
+  cliente: 'Banco Cliente S/A',
+  plataforma: 'ENTER',
+  periodo: '2026_Q4',
+  resumo_kpis: {
+    perdas_evitadas_total_brl: 1640000,
+    perdas_evitadas_q4_brl: 650000,
+    crescimento_roi_pct: 35,
+    taxa_exito_atual_pct: 87.4,
+    baseline_historico_pct: 55,
+    gap_de_valor_pct: 32.4,
+    taxa_acordo_pct: 42.1,
+    adesao_plataforma_pct: 94.2,
+    casos_seguidos_q4: 1507,
+    total_casos_q4: 1600,
+    predatorias_bloqueadas_total: 129,
+  },
+  grafico_evolucao_trimestral: [
+    {
+      trimestre: 'Q1',
+      processos: 1250,
+      saved_losses_brl: 180000,
+      exito_com_enter_pct: 74,
+      baseline_sem_enter_pct: 55,
+      adesao_plataforma_pct: 82,
+      taxa_acordo_pct: 31,
+      predatorias_bloqueadas: 34,
+    },
+    {
+      trimestre: 'Q2',
+      processos: 1480,
+      saved_losses_brl: 320000,
+      exito_com_enter_pct: 79.5,
+      baseline_sem_enter_pct: 55,
+      adesao_plataforma_pct: 88.5,
+      taxa_acordo_pct: 36.2,
+      predatorias_bloqueadas: 42,
+    },
+    {
+      trimestre: 'Q3',
+      processos: 1310,
+      saved_losses_brl: 490000,
+      exito_com_enter_pct: 82.8,
+      baseline_sem_enter_pct: 55,
+      adesao_plataforma_pct: 91.2,
+      taxa_acordo_pct: 39,
+      predatorias_bloqueadas: 28,
+    },
+    {
+      trimestre: 'Q4',
+      processos: 1600,
+      saved_losses_brl: 650000,
+      exito_com_enter_pct: 87.4,
+      baseline_sem_enter_pct: 55,
+      adesao_plataforma_pct: 94.2,
+      taxa_acordo_pct: 42.1,
+      predatorias_bloqueadas: 25,
+    },
+  ],
+} as const
 
 const statusLabels: Record<string, string> = {
   criado: 'Criado',
@@ -91,14 +162,24 @@ function EmployeeDashboard({
 }: MainDashboardProps) {
   const [processes, setProcesses] = useState<LegalProcess[]>([])
   const [casesError, setCasesError] = useState<string | null>(null)
+  const visibleSections = sections.filter(
+    (section) =>
+      !['triage', 'policy', 'negotiation', 'subsidies', 'results'].includes(section.id),
+  )
   const currentSection =
-    sections.find((section) => section.id === activeSection) ?? sections[0]
+    visibleSections.find((section) => section.id === activeSection) ?? visibleSections[0]
   const roleLabel = role === 'employee' ? 'Funcionario da empresa' : 'Advogado externo'
   const pendingQueue = buildPendingQueue(processes)
 
   useEffect(() => {
     void loadProcesses()
   }, [])
+
+  useEffect(() => {
+    if (!visibleSections.some((section) => section.id === activeSection)) {
+      onSectionSelect('home')
+    }
+  }, [activeSection, onSectionSelect, visibleSections])
 
   async function loadProcesses() {
     try {
@@ -124,7 +205,7 @@ function EmployeeDashboard({
         </div>
 
         <nav className="workspace-nav" aria-label="Navegacao principal">
-          {sections.map((section) => {
+          {visibleSections.map((section) => {
             const isActive = section.id === activeSection
 
             return (
@@ -149,13 +230,7 @@ function EmployeeDashboard({
       </aside>
 
       <section className="workspace-main">
-        <WorkspaceHeader
-          heroTitle={currentSection.heroTitle}
-          heroDescription={currentSection.heroDescription}
-          roleLabel={roleLabel}
-          sectionLabel={currentSection.label}
-          tag={currentSection.tag}
-        />
+        <WorkspaceHeader heroTitle={currentSection.heroTitle} />
 
         <EmployeeOverview
           activeSection={activeSection}
@@ -163,7 +238,7 @@ function EmployeeDashboard({
           onCasesRefresh={loadProcesses}
           processes={processes}
           onSectionSelect={onSectionSelect}
-          sections={sections}
+          sections={visibleSections}
         />
       </section>
 
@@ -306,53 +381,12 @@ function EmployeeInsightsView({ processes }: { processes: LegalProcess[] }) {
 
   return (
     <div className="workspace-content">
-      <section className="insights-panel-grid">
-        <article className="detail-card detail-card--wide insight-hero-card insight-hero-card--legal">
-          <div className="detail-card__header">
-            <div>
-              <span className="detail-card__eyebrow">{insights.legalSummary.eyebrow}</span>
-              <h2>{insights.legalSummary.title}</h2>
-            </div>
-            <span className="detail-card__tag">{insights.legalSummary.spotlight}</span>
-          </div>
-
-          <p>{insights.legalSummary.description}</p>
-
-          <div className="insight-stat-strip">
-            {insights.legalSummary.supportingStats.map((item) => (
-              <article key={item.label} className="insight-stat-pill">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <article className="detail-card insight-hero-card insight-hero-card--finance">
-          <div className="detail-card__header">
-            <div>
-              <span className="detail-card__eyebrow">{insights.financialSummary.eyebrow}</span>
-              <h2>{insights.financialSummary.title}</h2>
-            </div>
-            <span className="detail-card__tag">{insights.financialSummary.spotlight}</span>
-          </div>
-
-          <p>{insights.financialSummary.description}</p>
-
-          <div className="insight-stat-strip insight-stat-strip--stacked">
-            {insights.financialSummary.supportingStats.map((item) => (
-              <article key={item.label} className="insight-stat-pill">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </article>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="metrics-grid metrics-grid--insights" aria-label="Metricas executivas">
+      <section className="executive-metrics-grid" aria-label="Metricas executivas">
         {insights.metrics.map((metric) => (
-          <article key={metric.label} className="metric-card insight-metric-card">
+          <article
+            key={metric.label}
+            className={`metric-card executive-metric-card executive-metric-card--${metric.tone}`}
+          >
             <div className="metric-card__top">
               <div>
                 <span>{metric.label}</span>
@@ -362,9 +396,21 @@ function EmployeeInsightsView({ processes }: { processes: LegalProcess[] }) {
             </div>
 
             <p>{metric.description}</p>
-            <div className="insight-impact-note">{metric.impact}</div>
           </article>
         ))}
+      </section>
+
+      <section className="executive-chart-card" aria-label="Evolucao dos insights">
+        <div className="detail-card__header executive-chart-card__header">
+          <div>
+            <span className="detail-card__eyebrow">Impacto direto</span>
+            <h2>{insights.chart.title}</h2>
+          </div>
+          <span className="detail-card__tag">{insights.chart.spotlight}</span>
+        </div>
+
+        <p>{insights.chart.description}</p>
+        <ExecutiveLineChart series={insights.chart.series} />
       </section>
     </div>
   )
@@ -380,8 +426,18 @@ function EmployeeCasesView({
   processes: LegalProcess[]
 }) {
   const caseSummaries = processes.map(buildCaseSummary)
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(processes[0]?.id ?? null)
   const createdSeries = buildRecentCreationsSeries(processes)
   const pipelineSeries = buildPipelineDistributionSeries(processes)
+  const selectedProcess =
+    processes.find((process) => process.id === selectedProcessId) ?? processes[0] ?? null
+  const selectedSummary = selectedProcess ? buildCaseSummary(selectedProcess) : null
+
+  useEffect(() => {
+    setSelectedProcessId((current) =>
+      current && processes.some((process) => process.id === current) ? current : processes[0]?.id ?? null,
+    )
+  }, [processes])
 
   return (
     <div className="workspace-content">
@@ -429,15 +485,20 @@ function EmployeeCasesView({
             {caseSummaries.length === 0 ? (
               <article className="case-card case-card--empty">
                 <strong>Nenhum processo encontrado</strong>
-                <p>Os casos criados pelo advogado aparecerao aqui com status, fase atual e proxima etapa.</p>
+                <p>Os containers dos processos aparecerao aqui com o estado atual e a proxima etapa.</p>
               </article>
             ) : (
-              caseSummaries.map((item) => (
-                <article key={item.id} className="case-card">
+              caseSummaries.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`case-card case-card--button${item.id === selectedProcessId ? ' is-active' : ''}`}
+                  onClick={() => setSelectedProcessId(item.id)}
+                >
                   <div className="case-card__header">
                     <div>
-                      <span className="detail-card__eyebrow">Processo</span>
-                      <h3>{item.name}</h3>
+                      <span className="detail-card__eyebrow">Container</span>
+                      <h3>{`Processo ${String(index + 1).padStart(2, '0')}`}</h3>
                     </div>
                     <span className={`case-stage-badge${item.isPending ? ' is-pending' : ' is-complete'}`}>
                       {item.phaseLabel}
@@ -445,12 +506,7 @@ function EmployeeCasesView({
                   </div>
 
                   <div className="case-card__meta">
-                    <span>Numero do processo</span>
-                    <strong>{item.caseNumber}</strong>
-                  </div>
-
-                  <div className="case-card__meta">
-                    <span>Etapa atual</span>
+                    <span>Estado atual</span>
                     <strong>{item.currentStep}</strong>
                   </div>
 
@@ -459,16 +515,11 @@ function EmployeeCasesView({
                     <strong>{item.nextStep}</strong>
                   </div>
 
-                  <div className="case-card__meta">
-                    <span>Documentos enviados</span>
-                    <strong>{item.documentCount}</strong>
-                  </div>
-
                   <div className="case-card__footer">
                     <span>{item.updatedLabel}</span>
                     <span>{item.statusLabel}</span>
                   </div>
-                </article>
+                </button>
               ))
             )}
           </div>
@@ -477,25 +528,58 @@ function EmployeeCasesView({
         <article className="detail-card">
           <div className="detail-card__header">
             <div>
-              <span className="detail-card__eyebrow">Pendencias</span>
-              <h2>Proximas etapas</h2>
+              <span className="detail-card__eyebrow">Detalhes</span>
+              <h2>Visao do processo selecionado</h2>
             </div>
           </div>
 
-          <div className="case-next-list">
-            {caseSummaries.filter((item) => item.isPending).length === 0 ? (
-              <p>Todos os processos atuais ja passaram pelo pipeline principal.</p>
-            ) : (
-              caseSummaries
-                .filter((item) => item.isPending)
-                .map((item) => (
-                  <article key={`${item.id}-next`} className="case-next-card">
-                    <strong>{item.name}</strong>
-                    <span>{item.nextStep}</span>
+          {!selectedProcess || !selectedSummary ? (
+            <p>Selecione um container para abrir os dados especificos do processo.</p>
+          ) : (
+            <div className="lawyer-process-detail">
+              <div className="lawyer-summary-block">
+                <span>Estado atual</span>
+                <strong>{selectedSummary.currentStep}</strong>
+                <p>Proxima etapa: {selectedSummary.nextStep}</p>
+              </div>
+
+              <div className="lawyer-detail-grid">
+                {buildLawyerProcessFacts(selectedProcess).map((item) => (
+                  <article key={item.label} className="lawyer-detail-card">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
                   </article>
-                ))
-            )}
-          </div>
+                ))}
+              </div>
+
+              <div className="lawyer-summary-block">
+                <span>Recomendacao consolidada</span>
+                <strong>{selectedProcess.recommendation_summary ?? 'Analise ainda nao concluida.'}</strong>
+                <p>{selectedSummary.updatedLabel}</p>
+              </div>
+
+              <div className="lawyer-summary-block">
+                <span>Razoes da decisao</span>
+                {selectedProcess.decision_reasons.length === 0 ? (
+                  <p>As razoes da decisao aparecerao aqui depois que o pipeline concluir a analise.</p>
+                ) : (
+                  <div className="case-next-list">
+                    {selectedProcess.decision_reasons.map((reason, index) => (
+                      <article
+                        key={`${selectedProcess.id}-reason-${index}`}
+                        className="case-next-card case-next-card--reason"
+                      >
+                        <div className="case-next-card__header">
+                          <strong>{getDecisionReasonTitle(reason, index)}</strong>
+                        </div>
+                        <p>{reason}</p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </article>
       </section>
     </div>
@@ -863,12 +947,6 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   }
 
   const processStatus = selectedProcess ? getProcessStatusLabel(selectedProcess) : 'Sem selecao'
-  const recommendationReadyCount = processes.filter(
-    (process) => process.analysis_state === 'recomendacao_gerada',
-  ).length
-  const finalResponseCount = processes.filter(
-    (process) => process.analysis_state === 'resposta_definitiva',
-  ).length
   const lawyerHeader =
     activeView === 'overview'
       ? {
@@ -921,50 +999,13 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
           </div>
         </div>
 
-        <div className="pipeline-sidebar__block">
-          <span className="pipeline-sidebar__eyebrow">Fluxo do advogado</span>
-          <div className="pipeline-stage-list">
-            {pipelineStages.map((stage, index) => (
-              <article key={stage.id} className="pipeline-stage-card">
-                <strong>{index + 1}</strong>
-                <div>
-                  <span>{stage.title}</span>
-                  <p>{stage.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div className="pipeline-sidebar__block">
-          <span className="pipeline-sidebar__eyebrow">Resumo</span>
-          <div className="pipeline-summary-chip">
-            <strong>{processes.length}</strong>
-            <span>processos em memoria</span>
-          </div>
-          <div className="pipeline-summary-chip">
-            <strong>{recommendationReadyCount}</strong>
-            <span>com recomendacao gerada</span>
-          </div>
-          <div className="pipeline-summary-chip">
-            <strong>{finalResponseCount}</strong>
-            <span>com resposta definitiva</span>
-          </div>
-        </div>
-
         <button type="button" className="ghost-button" onClick={onLogout}>
           Trocar perfil
         </button>
       </aside>
 
       <section className="workspace-main pipeline-main">
-        <WorkspaceHeader
-          heroTitle={lawyerHeader.heroTitle}
-          heroDescription={lawyerHeader.heroDescription}
-          roleLabel={lawyerHeader.roleLabel}
-          sectionLabel={lawyerHeader.sectionLabel}
-          tag={lawyerHeader.tag}
-        />
+        <WorkspaceHeader heroTitle={lawyerHeader.heroTitle} />
 
         {error ? <div className="pipeline-alert pipeline-alert--error">{error}</div> : null}
         {feedback ? <div className="pipeline-alert pipeline-alert--success">{feedback}</div> : null}
@@ -1123,7 +1164,7 @@ function LawyerOverviewScreen({
           <div className="pipeline-card__header">
             <div>
               <span className="detail-card__eyebrow">Processos criados</span>
-              <h2>Fila ativa</h2>
+              <h2>Processos Recentes</h2>
             </div>
             <span className="pipeline-card__tag">{processes.length} registros</span>
           </div>
@@ -1226,12 +1267,13 @@ function LawyerOverviewScreen({
               <span className="detail-card__eyebrow">Campos extraidos</span>
               <h2>Dados estruturados</h2>
             </div>
-            <span className="pipeline-card__tag">OpenAI</span>
           </div>
 
           {selectedProcess?.extracted_data ? (
             <div className="field-grid">
-              {Object.entries(selectedProcess.extracted_data).map(([key, value]) => (
+              {Object.entries(selectedProcess.extracted_data)
+                .filter(([key]) => key !== 'fonte_extracao')
+                .map(([key, value]) => (
                 <article key={key} className="field-card">
                   <span>{extractedFieldLabels[key] ?? key}</span>
                   <strong>{formatValue(value)}</strong>
@@ -1401,6 +1443,9 @@ function LawyerProcessesScreen({
   const spotlightStrategy = selectedProcess
     ? getDisplayedStrategy(selectedProcess, currentFinalStrategy)
     : null
+  const promptInjectionAlert = selectedProcess
+    ? getPromptInjectionAlert(selectedProcess.processing_notes)
+    : null
 
   return (
     <>
@@ -1550,6 +1595,12 @@ function LawyerProcessesScreen({
                 <strong>{selectedSummary.currentStep}</strong>
                 <p>Proxima etapa: {selectedSummary.nextStep}</p>
               </div>
+
+              {promptInjectionAlert ? (
+                <div className="pipeline-alert pipeline-alert--warning">
+                  <strong>Alerta de seguranca.</strong> {promptInjectionAlert}
+                </div>
+              ) : null}
 
               {selectedProcess.model_prediction ? (
                 <section className="decision-spotlight">
@@ -1752,7 +1803,10 @@ function LawyerProcessesScreen({
                   <div className="lawyer-reason-list">
                     {selectedProcess.decision_reasons.map((reason, index) => (
                       <article key={`${selectedProcess.id}-reason-${index}`} className="lawyer-reason-card">
-                        {reason}
+                        <div className="case-next-card__header">
+                          <strong>{getDecisionReasonTitle(reason, index)}</strong>
+                        </div>
+                        <p>{reason}</p>
                       </article>
                     ))}
                   </div>
@@ -1796,19 +1850,7 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
-function WorkspaceHeader({
-  heroTitle,
-  heroDescription,
-  roleLabel,
-  sectionLabel,
-  tag,
-}: {
-  heroTitle: string
-  heroDescription: string
-  roleLabel: string
-  sectionLabel: string
-  tag: string
-}) {
+function WorkspaceHeader({ heroTitle }: { heroTitle: string }) {
   return (
     <header className="workspace-header">
       <div className="workspace-header__main">
@@ -1817,15 +1859,6 @@ function WorkspaceHeader({
           <p className="workspace-header__eyebrow">Tela principal</p>
           <h1 className="titleColor">Boas-vindas</h1>
           <span>{heroTitle}</span>
-        </div>
-      </div>
-
-      <div className="workspace-header__meta">
-        <strong>{tag}</strong>
-        <p>{heroDescription}</p>
-        <div className="workspace-header__chips">
-          <span>{roleLabel}</span>
-          <span>{sectionLabel}</span>
         </div>
       </div>
     </header>
@@ -1854,6 +1887,87 @@ function buildAcceptanceLabel(value: string) {
     return 'nao aceito'
   }
   return 'pendente'
+}
+
+function getPromptInjectionAlert(notes: string[]) {
+  const matchedNotes = notes.filter((note) => {
+    const normalized = note
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+
+    return (
+      normalized.includes('prompt injection') ||
+      normalized.includes('possivel prompt injection') ||
+      normalized.includes('sinalizada para revisao') ||
+      normalized.includes('bloqueou o envio automatico') ||
+      (normalized.includes('sanitizer') &&
+        (normalized.includes('decisao review') || normalized.includes('decisao reject')))
+    )
+  })
+
+  if (matchedNotes.length === 0) {
+    return null
+  }
+
+  return matchedNotes[0]
+}
+
+function getDecisionReasonTitle(reason: string, index: number) {
+  const normalized = reason
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (normalized.includes('foi classificado no assunto')) {
+    return 'Classificacao do processo'
+  }
+
+  if (normalized.includes('leitura consolidada dos autos')) {
+    return 'Leitura dos autos'
+  }
+
+  if (normalized.includes('foram analisados') && normalized.includes('documentos')) {
+    return 'Base documental analisada'
+  }
+
+  if (normalized.includes('modelo de ml estimou')) {
+    return 'Estimativa do modelo'
+  }
+
+  if (normalized.includes('score financeiro ajustado') || normalized.includes('valor sugerido')) {
+    return 'Parametro financeiro do acordo'
+  }
+
+  if (normalized.includes('valor da causa identificado')) {
+    return 'Valor da causa'
+  }
+
+  if (normalized.includes('subsidios detectados')) {
+    return 'Subsidios identificados'
+  }
+
+  if (normalized.includes('ainda nao foram localizados todos os subsidios')) {
+    return 'Subsidios pendentes'
+  }
+
+  if (normalized.includes('advogado confirmou')) {
+    return 'Confirmacao do advogado'
+  }
+
+  if (normalized.includes('advogado optou por nao seguir')) {
+    return 'Divergencia da recomendacao'
+  }
+
+  if (normalized.includes('decisao do advogado foi marcada')) {
+    return 'Aceite final da decisao'
+  }
+
+  if (normalized.includes('valor final informado pelo advogado')) {
+    return 'Valor final informado'
+  }
+
+  return `Fundamento ${index + 1}`
 }
 
 function getEffectiveAgreementAmount(process: LegalProcess) {
@@ -2123,241 +2237,88 @@ function buildPendingQueue(processes: LegalProcess[]): PendingItem[] {
     })
 }
 
-function buildEmployeeInsights(processes: LegalProcess[]): EmployeeInsightsSnapshot {
-  const processesWithOutcome = processes.filter((process) => getProcessOutcomeForInsights(process) !== 'open')
-  const victoryProcesses = processesWithOutcome.filter(
-    (process) => getProcessOutcomeForInsights(process) === 'victory',
-  )
-  const agreementProcesses = processesWithOutcome.filter(
-    (process) => getProcessOutcomeForInsights(process) === 'agreement',
-  )
-  const lossProcesses = processesWithOutcome.filter(
-    (process) => getProcessOutcomeForInsights(process) === 'loss',
-  )
-  const closedCount = processesWithOutcome.length
-  const agreementCount = agreementProcesses.length
-  const victoryCount = victoryProcesses.length
-  const lossCount = lossProcesses.length
-  const successRate = closedCount > 0 ? victoryCount / closedCount : 0
-  const agreementRate = closedCount > 0 ? agreementCount / closedCount : 0
-  const savedLosses = processes.reduce(
-    (total, process) => total + estimateSavedLosses(process),
-    0,
-  )
-  const totalClaimExposure = processes.reduce((total, process) => {
-    const claimAmount = getClaimAmount(process)
-    return total + (claimAmount ?? 0)
-  }, 0)
-  const roiRate = totalClaimExposure > 0 ? savedLosses / totalClaimExposure : 0
-
-  const overrideProcesses = processes.filter(
-    (process) => process.lawyer_confirmation?.choice === 'seguir_outra_estrategia',
-  )
-  const positiveOverrides = overrideProcesses.filter(
-    (process) => getOverrideAssessment(process) === 'positive',
-  ).length
-  const cautionOverrides = overrideProcesses.filter(
-    (process) => getOverrideAssessment(process) === 'caution',
-  ).length
-  const neutralOverrides = overrideProcesses.filter(
-    (process) => getOverrideAssessment(process) === 'neutral',
-  ).length
-  const overrideQuality =
-    overrideProcesses.length > 0 ? positiveOverrides / overrideProcesses.length : 0
-  const followedAlgorithmCount = processes.filter(
-    (process) => process.lawyer_confirmation?.choice === 'seguir_algoritmo',
-  ).length
+function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnapshot {
+  const fixture = EXECUTIVE_INSIGHTS_FIXTURE
+  const summary = fixture.resumo_kpis
+  const periods = fixture.grafico_evolucao_trimestral
 
   const metrics: InsightMetricCard[] = [
     {
-      label: 'Taxa de exito',
-      value: formatPercentage(successRate),
-      description:
-        'Percentual de processos com sinal de improcedencia ou extincao entre os casos com desfecho identificado.',
-      impact:
-        'Impacto direto: mostra a forca das teses defensivas e a blindagem da carteira contra litigancia predatoria.',
-      supportingLabel: `${victoryCount} vitorias mapeadas`,
+      label: 'Perdas evitadas',
+      value: formatCurrency(summary.perdas_evitadas_total_brl),
+      description: `+ ${formatPercentage(summary.crescimento_roi_pct / 100)} vs. trimestre anterior.`,
+      impact: '',
+      supportingLabel: `${formatCurrency(summary.perdas_evitadas_q4_brl)} no Q4`,
+      tone: 'cyan',
     },
     {
-      label: 'Perdas evitadas',
-      value: formatCurrency(savedLosses),
-      description:
-        'Soma estimada do valor preservado em pedidos rejeitados e em acordos fechados abaixo do valor da causa.',
-      impact:
-        'Impacto direto: traduz a operacao em ROI financeiro, indicando quanto deixou de sair do caixa do banco.',
-      supportingLabel: `${formatPercentage(roiRate)} do risco capturado`,
+      label: 'Taxa de exito',
+      value: formatPercentage(summary.taxa_exito_atual_pct / 100),
+      description: `+ ${formatPercentage(summary.gap_de_valor_pct / 100)} vs. historico sem ENTER.`,
+      impact: '',
+      supportingLabel: `Baseline ${formatPercentage(summary.baseline_historico_pct / 100)}`,
+      tone: 'emerald',
     },
     {
       label: 'Taxa de acordo',
-      value: formatPercentage(agreementRate),
-      description:
-        'Percentual de processos encerrados ou sinalizados como acordo dentro da base com desfecho identificado.',
-      impact:
-        'Impacto direto: mede reducao de passivo e capacidade de encerrar casos antes de custos prolongados.',
-      supportingLabel: `${agreementCount} acordos identificados`,
+      value: formatPercentage(summary.taxa_acordo_pct / 100),
+      description: `${summary.predatorias_bloqueadas_total} casos predatorios bloqueados no ano.`,
+      impact: '',
+      supportingLabel: `${summary.total_casos_q4} processos no Q4`,
+      tone: 'amber',
     },
     {
-      label: 'Qualidade dos overrides',
-      value: formatPercentage(overrideQuality),
-      description:
-        'Leitura da qualidade das divergencias humanas quando o advogado nao segue a recomendacao da IA.',
-      impact:
-        'Impacto direto: reforca a governanca algoritmica ao evidenciar quando a intervencao humana agregou valor.',
-      supportingLabel: `${overrideProcesses.length} overrides avaliados`,
+      label: 'Adesao a plataforma',
+      value: formatPercentage(summary.adesao_plataforma_pct / 100),
+      description: `${summary.casos_seguidos_q4.toLocaleString('pt-BR')} casos seguidos no trimestre.`,
+      impact: '',
+      supportingLabel: `${fixture.cliente} · ${fixture.periodo.replace('_', ' / ')}`,
+      tone: 'violet',
     },
   ]
 
   return {
     metrics,
-    legalSummary: {
-      eyebrow: 'Eficiencia Juridica',
-      title: 'Forca da tese defensiva e dos acordos na carteira',
+    chart: {
+      title: 'Impacto direto: COM ENTER vs. historico sem ENTER',
       description:
-        'Este bloco acompanha a distribuicao entre vitorias, acordos e perdas para mostrar se a politica juridica esta reduzindo litigiosidade e preservando caixa com criterio.',
-      spotlight: `${closedCount} casos com desfecho`,
-      supportingStats: [
-        { label: 'Vitorias mapeadas', value: formatValue(victoryCount) },
-        { label: 'Acordos mapeados', value: formatValue(agreementCount) },
-        { label: 'Perdas ou risco', value: formatValue(lossCount) },
+        'A evolucao trimestral destaca a adesao a plataforma, o exito juridico e a linha de base historica da operacao.',
+      spotlight: fixture.periodo.replace('_', ' / '),
+      series: [
+        {
+          label: 'Adesao a recomendacao',
+          colorClassName: 'is-cyan',
+          points: periods.map((period) => ({
+            title: `${period.trimestre} · ${formatValue(period.processos)} processos`,
+            shortLabel: period.trimestre,
+            value: period.adesao_plataforma_pct / 100,
+            secondaryValue: `${formatCurrency(period.saved_losses_brl)} saved losses`,
+          })),
+        },
+        {
+          label: 'Exito juridico',
+          colorClassName: 'is-emerald',
+          points: periods.map((period) => ({
+            title: `${period.trimestre} · ${formatValue(period.processos)} processos`,
+            shortLabel: period.trimestre,
+            value: period.exito_com_enter_pct / 100,
+            secondaryValue: `${period.predatorias_bloqueadas} predatorias bloqueadas`,
+          })),
+        },
+        {
+          label: 'Historico sem ENTER',
+          colorClassName: 'is-rose',
+          lineStyle: 'dashed',
+          points: periods.map((period) => ({
+            title: `${period.trimestre} · baseline`,
+            shortLabel: period.trimestre,
+            value: period.baseline_sem_enter_pct / 100,
+            secondaryValue: `${formatPercentage(period.taxa_acordo_pct / 100)} de acordo`,
+          })),
+        },
       ],
     },
-    financialSummary: {
-      eyebrow: 'Eficiencia Financeira & Algoritmica',
-      title: 'Valor preservado e disciplina de governanca humano + IA',
-      description:
-        'Compara o valor economizado com o comportamento das decisoes humanas frente ao algoritmo, destacando quando a governanca manteve coerencia e quando exigiu maior atencao.',
-      spotlight: `${formatPercentage(roiRate)} de ROI estimado`,
-      supportingStats: [
-        { label: 'Seguiram a IA', value: formatValue(followedAlgorithmCount) },
-        { label: 'Overrides positivos', value: formatValue(positiveOverrides) },
-        { label: 'Overrides sob atencao', value: formatValue(cautionOverrides + neutralOverrides) },
-      ],
-    },
   }
-}
-
-function getProcessOutcomeForInsights(process: LegalProcess) {
-  const macro = normalizeText(process.extracted_data?.resultado_macro)
-  const evidenceText = normalizeText(
-    `${String(process.extracted_data?.resultado_micro ?? '')} ${process.final_response ?? ''} ${process.recommendation_summary ?? ''}`,
-  )
-  const finalStrategy = process.lawyer_confirmation?.final_strategy
-
-  if (macro.includes('improced') || evidenceText.includes('improced')) {
-    return 'victory' as const
-  }
-
-  if (macro.includes('extinc') || evidenceText.includes('extinc')) {
-    return 'victory' as const
-  }
-
-  if (
-    finalStrategy === 'acordo' ||
-    macro.includes('acordo') ||
-    evidenceText.includes('acordo') ||
-    evidenceText.includes('concili')
-  ) {
-    return 'agreement' as const
-  }
-
-  if (macro.includes('proced') || evidenceText.includes('proced')) {
-    return 'loss' as const
-  }
-
-  return 'open' as const
-}
-
-function estimateSavedLosses(process: LegalProcess) {
-  const claimAmount = getClaimAmount(process)
-  if (claimAmount === null || claimAmount <= 0) {
-    return 0
-  }
-
-  const outcome = getProcessOutcomeForInsights(process)
-  if (outcome === 'victory') {
-    return claimAmount
-  }
-
-  if (outcome === 'agreement') {
-    const agreementAmount = getEffectiveAgreementAmount(process)
-    if (agreementAmount === null) {
-      return 0
-    }
-
-    return Math.max(claimAmount - agreementAmount, 0)
-  }
-
-  return 0
-}
-
-function getOverrideAssessment(process: LegalProcess) {
-  const lawyerConfirmation = process.lawyer_confirmation
-  if (!lawyerConfirmation || lawyerConfirmation.choice !== 'seguir_outra_estrategia') {
-    return 'neutral' as const
-  }
-
-  const outcome = getProcessOutcomeForInsights(process)
-  const claimAmount = getClaimAmount(process)
-  const agreementAmount = getEffectiveAgreementAmount(process)
-  const successProbability = process.model_prediction?.probability_success ?? 0
-  const threshold = process.model_prediction?.threshold_success ?? 0
-
-  if (lawyerConfirmation.final_strategy === 'defesa') {
-    if (outcome === 'victory' || successProbability >= Math.max(threshold - 0.08, 0)) {
-      return 'positive' as const
-    }
-
-    return outcome === 'open' ? ('neutral' as const) : ('caution' as const)
-  }
-
-  if (lawyerConfirmation.final_strategy === 'acordo') {
-    if (
-      claimAmount !== null &&
-      agreementAmount !== null &&
-      agreementAmount > 0 &&
-      agreementAmount <= claimAmount * 0.7
-    ) {
-      return 'positive' as const
-    }
-
-    if (outcome === 'agreement' && claimAmount !== null && agreementAmount !== null && agreementAmount < claimAmount) {
-      return 'positive' as const
-    }
-
-    return outcome === 'open' ? ('neutral' as const) : ('caution' as const)
-  }
-
-  return 'neutral' as const
-}
-
-function getClaimAmount(process: LegalProcess) {
-  const extractedValue = process.extracted_data?.valor_causa
-  if (typeof extractedValue === 'number' && Number.isFinite(extractedValue)) {
-    return extractedValue
-  }
-
-  if (typeof extractedValue === 'string') {
-    const normalized = extractedValue
-      .replace(/[R$\s]/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.')
-    const parsed = Number(normalized)
-    if (Number.isFinite(parsed)) {
-      return parsed
-    }
-  }
-
-  const predictedValue = process.model_prediction?.claim_amount_brl
-  return typeof predictedValue === 'number' && Number.isFinite(predictedValue)
-    ? predictedValue
-    : null
-}
-
-function normalizeText(value: unknown) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
 }
 
 function buildEmployeeSectionMetrics(
@@ -2681,6 +2642,126 @@ function MiniChart({
       <div className="mini-chart__footer">
         <span>{formatter(0)}</span>
         <span>{formatter(maxValue)}</span>
+      </div>
+    </div>
+  )
+}
+
+function ExecutiveLineChart({ series }: { series: InsightChartSeries[] }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const pointCount = series[0]?.points.length ?? 0
+  const safePointCount = pointCount > 0 ? pointCount : 1
+  const activeIndex = hoveredIndex ?? Math.max(safePointCount - 1, 0)
+  const percentageValues = series.flatMap((item) => item.points.map((point) => point.value * 100))
+  const rawMinValue = percentageValues.length > 0 ? Math.min(...percentageValues) : 0
+  const rawMaxValue = percentageValues.length > 0 ? Math.max(...percentageValues) : 100
+  const verticalPadding = Math.max((rawMaxValue - rawMinValue) * 0.2, 6)
+  const minValue = Math.max(0, rawMinValue - verticalPadding)
+  const maxValue = Math.min(100, rawMaxValue + verticalPadding)
+  const valueRange = Math.max(maxValue - minValue, 1)
+  const chartHeight = 240
+  const chartWidth = 960
+  const leftPadding = 28
+  const rightPadding = 28
+  const topPadding = 18
+  const bottomPadding = 18
+  const plotWidth = chartWidth - leftPadding - rightPadding
+  const plotHeight = chartHeight - topPadding - bottomPadding
+  const gridLines = Array.from({ length: 5 }, (_, index) => minValue + (valueRange / 4) * index)
+  const activeLabel = series[0]?.points[activeIndex]?.title ?? 'Sem dados'
+
+  return (
+    <div className="executive-line-chart">
+      <div className="executive-line-chart__legend">
+        {series.map((item) => (
+          <div key={item.label} className="executive-line-chart__legend-item">
+            <span className={`executive-line-chart__legend-swatch ${item.colorClassName}`} />
+            <strong>{item.label}</strong>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="executive-line-chart__frame"
+        onMouseLeave={() => setHoveredIndex(null)}
+      >
+        <div className="executive-line-chart__summary">
+          <span>{activeLabel}</span>
+          <div className="executive-line-chart__summary-values">
+            {series.map((item) => (
+              <article key={item.label} className="executive-line-chart__summary-card">
+                <small>{item.label}</small>
+                <strong>{formatPercentage(item.points[activeIndex]?.value ?? 0)}</strong>
+                <span>{item.points[activeIndex]?.secondaryValue ?? 'Sem dados'}</span>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="executive-line-chart__svg" aria-hidden="true">
+          {gridLines.map((line) => {
+            const progress = (line - minValue) / valueRange
+            const y = chartHeight - bottomPadding - progress * plotHeight
+            return (
+              <line
+                key={line}
+                x1={leftPadding}
+                y1={y}
+                x2={chartWidth - rightPadding}
+                y2={y}
+                className="executive-line-chart__grid-line"
+              />
+            )
+          })}
+
+          {series.map((item) => {
+            const points = item.points.map((point, index) => {
+              const x =
+                safePointCount === 1
+                  ? chartWidth / 2
+                  : leftPadding + (index / (safePointCount - 1)) * plotWidth
+              const y =
+                chartHeight -
+                bottomPadding -
+                (((point.value * 100) - minValue) / valueRange) * plotHeight
+              return { x, y }
+            })
+            const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(' ')
+
+            return (
+              <g key={item.label} className={`executive-line-chart__series ${item.colorClassName}`}>
+                <polyline
+                  points={polylinePoints}
+                  className={`executive-line-chart__line${item.lineStyle === 'dashed' ? ' is-dashed' : ''}`}
+                />
+                {points.map((point, index) => (
+                  <circle
+                    key={`${item.label}-${index}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r={index === activeIndex ? 2.5 : 1.7}
+                    className="executive-line-chart__point"
+                  />
+                ))}
+              </g>
+            )
+          })}
+        </svg>
+
+        <div className="executive-line-chart__labels">
+          {(series[0]?.points ?? []).map((point, index) => (
+            <button
+              key={`${point.title}-${index}`}
+              type="button"
+              className={`executive-line-chart__label${index === activeIndex ? ' is-active' : ''}`}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onFocus={() => setHoveredIndex(index)}
+              onBlur={() => setHoveredIndex(null)}
+            >
+              {point.shortLabel}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
