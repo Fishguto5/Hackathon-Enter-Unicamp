@@ -200,6 +200,50 @@ def format_brl(value: float) -> str:
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def has_rejected_prompt_injection_assessment(process: object) -> bool:
+    documents = getattr(process, "documents", [])
+    return any(
+        isinstance(getattr(document, "security_assessment", None), dict)
+        and document.security_assessment.get("decision") == "reject"
+        for document in documents
+    )
+
+
+def without_internal_sanitizer_notes(notes: list[str]) -> list[str]:
+    """Keep unconfirmed sanitizer signals out of the lawyer-facing activity log."""
+    return [
+        note
+        for note in notes
+        if "prompt injection" not in note.lower() and "sanitizer" not in note.lower()
+    ]
+
+
+def apply_prompt_injection_defense(process: object) -> None:
+    """Apply the terminal defense when prompt injection is confirmed."""
+    rejection_note = (
+        "Defesa por prompt injection: tentativa identificada no pipeline. "
+        "O acordo foi bloqueado e o conteudo sinalizado nao foi usado na analise juridica."
+    )
+
+    process.extracted_data = None
+    process.subsidies = {key: 0 for key in process.subsidies}
+    process.feature_vector = None
+    process.model_prediction = None
+    process.lawyer_confirmation = None
+    process.preprocessing_summary = None
+    process.case_intelligence = None
+    process.recommendation_summary = rejection_note
+    process.decision_reasons = [
+        "Motivo da defesa: o sanitizer confirmou uma tentativa de prompt injection em pelo menos um documento.",
+        "Protecao aplicada: o conteudo sinalizado nao foi enviado para extracao estruturada, modelo de ML ou proposta de acordo.",
+    ]
+    process.final_response = rejection_note
+    process.analysis_state = "recusado_prompt_injection"
+    if rejection_note not in process.processing_notes:
+        process.processing_notes.append(rejection_note)
+    process.touch(status="recusado_prompt_injection")
+
+
 def build_final_decision_summary(
     lawyer_confirmation: LawyerConfirmationRecord | None,
 ) -> str | None:
@@ -355,6 +399,9 @@ def upload_documents(process_id: str):
         for subsidy_key, hit in subsidy_hits.items():
             process.subsidies[subsidy_key] = max(process.subsidies.get(subsidy_key, 0), hit)
 
+    # A new upload invalidates prior pipeline checks; the scan happens only on the next run.
+    for document in process.documents:
+        document.security_assessment = None
     process.extracted_data = None
     process.feature_vector = None
     process.model_prediction = None
@@ -365,6 +412,7 @@ def upload_documents(process_id: str):
     process.decision_reasons = []
     process.final_response = None
     process.analysis_state = "nao_iniciada"
+    process.processing_notes = without_internal_sanitizer_notes(process.processing_notes)
     process.processing_notes.extend(batch_notes)
     process.touch(status="documentos_recebidos")
     repository.save(process)
@@ -378,6 +426,20 @@ def analyze_process(process_id: str):
         return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
     if not process.documents:
         return jsonify({"error": "Anexe documentos antes de processar."}), HTTPStatus.BAD_REQUEST
+
+    for document in process.documents:
+        assessment = extraction_service.inspect_document_safety(
+            document.filename,
+            document.extracted_text,
+        )
+        # Only confirmed prompt injection is exposed to the case workflow.
+        document.security_assessment = (
+            assessment if assessment["decision"] == "reject" else None
+        )
+    if has_rejected_prompt_injection_assessment(process):
+        apply_prompt_injection_defense(process)
+        repository.save(process)
+        return jsonify(process.to_dict())
 
     classified_documents, classification_notes = extraction_service.classify_documents(
         [(document.filename, document.extracted_text) for document in process.documents]
@@ -413,6 +475,7 @@ def analyze_process(process_id: str):
         extracted_data,
         process.subsidies,
         model_prediction,
+        process.documents,
     )
     process.lawyer_confirmation = None
     process.preprocessing_summary = preprocessing_summary
@@ -429,8 +492,8 @@ def analyze_process(process_id: str):
     )
     process.final_response = None
     process.analysis_state = "recomendacao_gerada"
-    process.processing_notes.extend(classification_notes)
-    process.processing_notes.extend(extraction_notes)
+    process.processing_notes.extend(without_internal_sanitizer_notes(classification_notes))
+    process.processing_notes.extend(without_internal_sanitizer_notes(extraction_notes))
     process.processing_notes.extend(decision_notes)
     process.touch(status="processado")
     repository.save(process)
@@ -442,6 +505,18 @@ def finalize_process(process_id: str):
     process = repository.get(process_id)
     if not process:
         return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
+    if has_rejected_prompt_injection_assessment(process):
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "O processo recebeu defesa automatica porque a verificacao de prompt injection "
+                        "identificou uma tentativa em um documento."
+                    )
+                }
+            ),
+            HTTPStatus.CONFLICT,
+        )
     if not process.feature_vector:
         return jsonify({"error": "Execute a analise antes de registrar a resposta definitiva."}), HTTPStatus.BAD_REQUEST
 

@@ -70,6 +70,7 @@ class DocumentRecord:
     extracted_text: str
     subsidy_hits: dict[str, int]
     classification: str = "nao identificado"
+    security_assessment: dict[str, Any] | None = None
 
     @classmethod
     def create(
@@ -81,6 +82,7 @@ class DocumentRecord:
         extracted_text: str,
         subsidy_hits: dict[str, int],
         classification: str = "nao identificado",
+        security_assessment: dict[str, Any] | None = None,
     ) -> "DocumentRecord":
         return cls(
             id=str(uuid4()),
@@ -91,6 +93,7 @@ class DocumentRecord:
             extracted_text=extracted_text,
             subsidy_hits=subsidy_hits,
             classification=classification,
+            security_assessment=security_assessment,
         )
 
     def to_dict(self) -> dict[str, Any]:

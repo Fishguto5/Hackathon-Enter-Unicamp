@@ -49,6 +49,20 @@ class EnterOSPromptInjectionAdapter:
             max_chars=self._extraction_max_chars,
         )
 
+    def guard_document(
+        self,
+        *,
+        filename: str,
+        text: str,
+    ) -> GuardedModelInput:
+        """Inspect one document independently so its decision can be audited by the lawyer."""
+        safe_filename = " ".join((filename or "documento").splitlines()).strip() or "documento"
+        return self._guard_single_text(
+            source_reference=f"document:{safe_filename}",
+            text=f"Arquivo: {safe_filename}\n{text}",
+            max_chars=self._classification_document_max_chars,
+        )
+
     def guard_document_classification_batch(
         self,
         documents: list[tuple[str, str]],

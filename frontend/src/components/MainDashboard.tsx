@@ -5,10 +5,7 @@ import {
   type DashboardSection,
   type LoginOptionId,
 } from '../data/dashboard'
-import {
-  extractedFieldLabels,
-  subsidyCatalog,
-} from '../data/pipeline'
+import { extractedFieldLabels, subsidyCatalog } from '../data/pipeline'
 import {
   analyzeProcess,
   createProcess,
@@ -137,11 +134,13 @@ const statusLabels: Record<string, string> = {
   criado: 'Criado',
   documentos_recebidos: 'Documentos recebidos',
   processado: 'Processado',
+  recusado_prompt_injection: 'Defesa por prompt injection aplicada',
 }
 
 const analysisStateLabels: Record<string, string> = {
-  nao_iniciada: 'Analise nao iniciada',
-  recomendacao_gerada: 'Recomendacao gerada',
+  nao_iniciada: 'Análise nao iniciada',
+  recusado_prompt_injection: 'Defesa por prompt injection aplicada',
+  recomendacao_gerada: 'Recomendaçao gerada',
   resposta_definitiva: 'Resposta definitiva enviada',
 }
 
@@ -310,6 +309,16 @@ function EmployeeOverview({
     )
   }
 
+  if (currentSection.id === 'additional_analysis') {
+    return (
+      <EmployeeAdditionalAnalysisView
+        casesError={casesError}
+        onRefresh={onCasesRefresh}
+        processes={processes}
+      />
+    )
+  }
+
   return (
     <div className="workspace-content">
       <section className="metrics-grid" aria-label="Indicadores principais">
@@ -372,6 +381,238 @@ function EmployeeOverview({
           </div>
         </article>
       </section>
+    </div>
+  )
+}
+
+function EmployeeAdditionalAnalysisView({
+  casesError,
+  onRefresh,
+  processes,
+}: {
+  casesError: string | null
+  onRefresh: () => Promise<void>
+  processes: LegalProcess[]
+}) {
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(processes[0]?.id ?? null)
+  const [defenseOperationalCost, setDefenseOperationalCost] = useState('')
+  const [agreementOperationalCost, setAgreementOperationalCost] = useState('')
+  const [customAgreementValue, setCustomAgreementValue] = useState('')
+  const selectedProcess =
+    processes.find((process) => process.id === selectedProcessId) ?? processes[0] ?? null
+  const intelligence = selectedProcess?.case_intelligence
+  const modelPrediction = selectedProcess?.model_prediction
+  const extractedClaimAmount = selectedProcess?.extracted_data?.valor_causa
+  const claimAmount = modelPrediction?.claim_amount_brl ?? (
+    typeof extractedClaimAmount === 'number' ? extractedClaimAmount : 0
+  )
+  const suggestedAgreement = modelPrediction?.agreement_amount_suggested ??
+    intelligence?.expected_agreement_cost_brl ?? 0
+  const currentAgreement = selectedProcess?.lawyer_confirmation?.proposed_agreement_amount ?? suggestedAgreement
+  const defenseOperatingAmount = Math.max(parseAmountInput(defenseOperationalCost) ?? 0, 0)
+  const agreementOperatingAmount = Math.max(parseAmountInput(agreementOperationalCost) ?? 0, 0)
+  const customAgreementAmount = Math.max(parseAmountInput(customAgreementValue) ?? currentAgreement, 0)
+  const defenseExposure = intelligence?.expected_defense_cost_brl ?? 0
+  const scenarios = [
+    {
+      id: 'defesa',
+      label: 'Defesa',
+      description: 'Exposicao esperada caso a tese seja mantida, somada ao custo operacional informado.',
+      predictedAmount: defenseExposure,
+      operatingAmount: defenseOperatingAmount,
+      totalAmount: defenseExposure + defenseOperatingAmount,
+    },
+    {
+      id: 'acordo-sugerido',
+      label: 'Acordo recomendado',
+      description: 'Valor sugerido pelo modelo, acrescido do custo operacional da negociacao.',
+      predictedAmount: suggestedAgreement,
+      operatingAmount: agreementOperatingAmount,
+      totalAmount: suggestedAgreement + agreementOperatingAmount,
+    },
+    {
+      id: 'acordo-personalizado',
+      label: 'Acordo personalizado',
+      description: 'Cenario hipotetico com a proposta de acordo informada pelo usuario.',
+      predictedAmount: customAgreementAmount,
+      operatingAmount: agreementOperatingAmount,
+      totalAmount: customAgreementAmount + agreementOperatingAmount,
+    },
+  ]
+  const lowestCost = Math.min(...scenarios.map((scenario) => scenario.totalAmount))
+
+  useEffect(() => {
+    setSelectedProcessId((current) =>
+      current && processes.some((process) => process.id === current) ? current : processes[0]?.id ?? null,
+    )
+  }, [processes])
+
+  useEffect(() => {
+    setDefenseOperationalCost('')
+    setAgreementOperationalCost('')
+    setCustomAgreementValue(currentAgreement > 0 ? String(currentAgreement) : '')
+  }, [selectedProcess?.id, currentAgreement])
+
+  return (
+    <div className="workspace-content">
+      <section className="cost-simulator-hero">
+        <div>
+          <span className="detail-card__eyebrow">Analise adicional</span>
+          <h2>Simulador de custos e cenarios</h2>
+          <p>
+            Compare a exposicao financeira estimada para defesa com o acordo recomendado pelo modelo e
+            uma proposta personalizada. Os cenarios nao alteram a recomendação registrada no processo.
+          </p>
+        </div>
+        <div className="cost-simulator-hero__actions">
+          <label htmlFor="additional-analysis-process">Processo analisado</label>
+          <select
+            id="additional-analysis-process"
+            value={selectedProcess?.id ?? ''}
+            onChange={(event) => setSelectedProcessId(event.target.value)}
+            disabled={processes.length === 0}
+          >
+            {processes.length === 0 ? (
+              <option value="">Nenhum processo disponivel</option>
+            ) : (
+              processes.map((process) => (
+                <option key={process.id} value={process.id}>
+                  {process.name}
+                </option>
+              ))
+            )}
+          </select>
+          <button type="button" className="ghost-button" onClick={() => void onRefresh()}>
+            Atualizar dados
+          </button>
+        </div>
+      </section>
+
+      {casesError ? <p className="pipeline-alert pipeline-alert--error">{casesError}</p> : null}
+
+      {!selectedProcess ? (
+        <section className="detail-card">
+          <p className="empty-state">Nenhum processo esta disponivel para analise documental.</p>
+        </section>
+      ) : !intelligence ? (
+        <section className="detail-card">
+          <span className="detail-card__eyebrow">Aguardando analise</span>
+          <h2>Suba os arquivos do processo</h2>
+          <p className="empty-state">
+            O processo precisa de uma recomendação e de um risco juridico calculado antes de comparar os
+            cenarios de custo.
+          </p>
+        </section>
+      ) : (
+        <>
+          <section className="cost-forecast-grid" aria-label="Bases da previsao de custos">
+            <article className="cost-forecast-card cost-forecast-card--claim">
+              <span>Valor da causa</span>
+              <strong>{formatCurrency(claimAmount)}</strong>
+              <small>Base financeira usada para estimar a exposicao.</small>
+            </article>
+            <article className="cost-forecast-card">
+              <span>Risco juridico</span>
+              <strong>{formatPercentage(intelligence.legal_risk / 100)}</strong>
+              <small>Risco ajustado pela qualidade das evidencias documentais.</small>
+            </article>
+            <article className="cost-forecast-card">
+              <span>Recomendação vigente</span>
+              <strong>{modelPrediction?.strategy?.toUpperCase() ?? 'EM REVISAO'}</strong>
+              <small>
+                {modelPrediction
+                  ? `Chance de nao exito: ${formatPercentage(modelPrediction.probability_failure)}.`
+                  : 'Sem probabilidade do modelo disponivel.'}
+              </small>
+            </article>
+          </section>
+
+          <section className="cost-input-card">
+            <div className="cost-section-header">
+              <div>
+                <span className="detail-card__eyebrow">Parametros de cenario</span>
+                <h2>Ajuste somente os custos que a plataforma ainda nao possui</h2>
+              </div>
+            </div>
+            <div className="cost-input-grid">
+              <label>
+                Custo operacional da defesa (R$)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={defenseOperationalCost}
+                  onChange={(event) => setDefenseOperationalCost(event.target.value)}
+                  placeholder="Ex.: 1.500,00"
+                />
+              </label>
+              <label>
+                Custo operacional do acordo (R$)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={agreementOperationalCost}
+                  onChange={(event) => setAgreementOperationalCost(event.target.value)}
+                  placeholder="Ex.: 500,00"
+                />
+              </label>
+              <label>
+                Proposta personalizada de acordo (R$)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={customAgreementValue}
+                  onChange={(event) => setCustomAgreementValue(event.target.value)}
+                  placeholder="Valor sugerido pelo modelo"
+                />
+              </label>
+            </div>
+            <p className="cost-input-card__note">
+              Custos operacionais sao parametros de simulacao e nao sao gravados na decisão do advogado.
+            </p>
+          </section>
+
+          <section className="cost-scenarios-card">
+            <div className="cost-section-header">
+              <div>
+                <span className="detail-card__eyebrow">Possibilidades atuais</span>
+                <h2>Comparacao financeira por estrategia</h2>
+              </div>
+              <span className="cost-scenarios-card__tag">Menor custo destacado</span>
+            </div>
+            <div className="cost-scenarios-grid">
+              {scenarios.map((scenario) => {
+                const isLowestCost = scenario.totalAmount === lowestCost
+                const potentialSavings = Math.max(claimAmount - scenario.totalAmount, 0)
+
+                return (
+                  <article key={scenario.id} className={`cost-scenario${isLowestCost ? ' is-lowest-cost' : ''}`}>
+                    <div className="cost-scenario__header">
+                      <span>{scenario.label}</span>
+                      {isLowestCost ? <small>Menor custo</small> : null}
+                    </div>
+                    <strong>{formatCurrency(scenario.totalAmount)}</strong>
+                    <p>{scenario.description}</p>
+                    <div className="cost-scenario__breakdown">
+                      <span>Previsão atual <b>{formatCurrency(scenario.predictedAmount)}</b></span>
+                      <span>Operacional <b>{formatCurrency(scenario.operatingAmount)}</b></span>
+                      <span>Exposiçao evitada <b>{formatCurrency(potentialSavings)}</b></span>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="cost-method-card">
+            <span className="detail-card__eyebrow">Como a previsao e calculada</span>
+            <p>
+              A defesa usa a exposicao esperada calculada pelo risco juridico e pelo valor da causa. O
+              acordo recomendado usa o valor retornado pelo modelo. A proposta personalizada permite
+              testar um novo valor, sem alterar a recomendacao automatica ou a decisão final.
+            </p>
+          </section>
+        </>
+      )}
     </div>
   )
 }
@@ -553,15 +794,15 @@ function EmployeeCasesView({
               </div>
 
               <div className="lawyer-summary-block">
-                <span>Recomendacao consolidada</span>
-                <strong>{selectedProcess.recommendation_summary ?? 'Analise ainda nao concluida.'}</strong>
+                <span>Recomendação consolidada</span>
+                <strong>{selectedProcess.recommendation_summary ?? 'Análise ainda nao concluida.'}</strong>
                 <p>{selectedSummary.updatedLabel}</p>
               </div>
 
               <div className="lawyer-summary-block">
-                <span>Razoes da decisao</span>
+                <span>Razões da decisão</span>
                 {selectedProcess.decision_reasons.length === 0 ? (
-                  <p>As razoes da decisao aparecerao aqui depois que o pipeline concluir a analise.</p>
+                  <p>As razões da decisão aparecerao aqui depois que o pipeline concluir a análise.</p>
                 ) : (
                   <div className="case-next-list">
                     {selectedProcess.decision_reasons.map((reason, index) => (
@@ -776,7 +1017,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       const updated = await uploadProcessDocuments(selectedProcess.id, pendingFiles)
       replaceProcess(updated)
       setPendingFiles([])
-      setFeedback('Arquivos enviados. O processo esta pronto para a extracao.')
+      setFeedback('Arquivos enviados. Rode o pipeline para validar os arquivos e gerar a analise.')
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Falha ao enviar documentos.')
     } finally {
@@ -798,7 +1039,11 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       const updated = await analyzeProcess(selectedProcess.id)
       replaceProcess(updated)
       setActiveView('cases')
-      setFeedback('Pipeline concluido. A recomendacao e as razoes da analise foram atualizadas.')
+      setFeedback(
+        hasRejectedPromptInjection(updated)
+          ? 'Defesa por prompt injection aplicada. Nenhuma recomendacao juridica ou proposta de acordo foi gerada.'
+          : 'Pipeline concluido. A recomendacao e as razoes da analise foram atualizadas.',
+      )
     } catch (analyzeError) {
       setError(
         analyzeError instanceof Error ? analyzeError.message : 'Falha ao executar o pipeline.',
@@ -822,7 +1067,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       return
     }
     if (!finalAcceptanceStatus) {
-      setError('Informe se a decisao final do advogado foi aceita ou nao aceita.')
+      setError('Informe se a decisão final do advogado foi aceita ou nao aceita.')
       return
     }
     const currentFinalStrategy = getCurrentFinalStrategy(
@@ -960,7 +1205,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       : {
           heroTitle: 'Carteira de processos criados com leitura orientada por status',
           heroDescription:
-            'Abra cada caso para revisar os dados principais, a recomendacao gerada e as razoes da decisao automatica.',
+            'Abra cada caso para revisar os dados principais, a recomendacao gerada e as razoes da decisão automatica.',
           tag: 'Tela de processos',
           sectionLabel: 'Processos',
           roleLabel: 'Advogado externo',
@@ -1129,7 +1374,7 @@ function LawyerOverviewScreen({
             <small>aguardando revisao</small>
           </div>
           <MiniChart data={analysisSeries} emphasis="high" />
-          <p>Processos cuja analise automatica ja gerou dados estruturados e racional de decisao.</p>
+          <p>Processos cuja analise automatica ja gerou dados estruturados e racional de decisão.</p>
         </article>
       </section>
 
@@ -1251,6 +1496,7 @@ function LawyerOverviewScreen({
                   selectedProcess.documents.map((document) => (
                     <article key={document.id} className="document-preview-card">
                       <strong>{document.filename}</strong>
+                      {document.security_assessment ? <DocumentSecurityResult document={document} /> : null}
                     </article>
                   ))
                 )}
@@ -1367,6 +1613,89 @@ function LawyerOverviewScreen({
   )
 }
 
+function DocumentSecurityPanel({
+  documents,
+}: {
+  documents: LegalProcess['documents']
+}) {
+  const inspectedDocuments = documents.filter((document) => document.security_assessment)
+
+  if (inspectedDocuments.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="document-security-panel">
+      <div className="document-security-panel__header">
+        <div>
+          <span className="detail-card__eyebrow">Prompt injection confirmado</span>
+          <h3>Arquivos com tentativa identificada</h3>
+        </div>
+        <span className="pipeline-card__tag">{inspectedDocuments.length} arquivos avaliados</span>
+      </div>
+      <p className="document-security-panel__description">
+        Apenas arquivos com prompt injection confirmado sao exibidos nesta lista.
+      </p>
+      <div className="document-security-panel__list">
+        {inspectedDocuments.map((document) => (
+          <article key={document.id} className="document-security-panel__item">
+            <strong>{document.filename}</strong>
+            <DocumentSecurityResult document={document} />
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function DocumentSecurityResult({
+  document,
+}: {
+  document: LegalProcess['documents'][number]
+}) {
+  const assessment = document.security_assessment
+
+  if (!assessment || assessment.decision !== 'reject') {
+    return null
+  }
+
+  const status = getDocumentSecurityStatus()
+
+  return (
+    <div className={`document-security-result is-${assessment.decision}`}>
+      <div className="document-security-result__header">
+        <div>
+          <span>{status.eyebrow}</span>
+          <strong>{status.title}</strong>
+        </div>
+        <small>{assessment.finding_count} achados</small>
+      </div>
+      <p>{status.description}</p>
+
+      {assessment.findings.length > 0 ? (
+        <ul className="document-security-result__findings">
+          {assessment.findings.map((finding, index) => (
+            <li key={`${document.id}-${finding.rule_id}-${index}`}>
+              <strong>{getSecurityFindingLabel(finding.rule_id)}</strong>
+              <span>
+                {finding.line_numbers.length > 0
+                  ? `Linhas ${finding.line_numbers.join(', ')} do conteudo inspecionado.`
+                  : 'Sinal identificado na verificacao consolidada do arquivo.'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {assessment.change_count > 0 ? (
+        <small className="document-security-result__changes">
+          {assessment.change_count} transformacoes de normalizacao registradas antes da verificacao.
+        </small>
+      ) : null}
+    </div>
+  )
+}
+
 function LawyerProcessesScreen({
   alternativeStrategy,
   confirmationChoice,
@@ -1416,6 +1745,7 @@ function LawyerProcessesScreen({
   const finalResponseCount = processes.filter(
     (process) => process.analysis_state === 'resposta_definitiva',
   ).length
+  const hasRejectedDocument = hasRejectedPromptInjection(selectedProcess)
   const selectedSummary = selectedProcess ? buildCaseSummary(selectedProcess) : null
   const createdSeries = buildRecentCreationsSeries(processes)
   const reviewSeries = buildAnalysisStateSeries(processes)
@@ -1443,10 +1773,9 @@ function LawyerProcessesScreen({
   const spotlightStrategy = selectedProcess
     ? getDisplayedStrategy(selectedProcess, currentFinalStrategy)
     : null
-  const promptInjectionAlert = selectedProcess
-    ? getPromptInjectionAlert(selectedProcess.processing_notes)
-    : null
-
+  const canFinalizeProcess =
+    Boolean(selectedProcess?.feature_vector) &&
+    !hasRejectedDocument
   return (
     <>
       <section className="metrics-grid" aria-label="Resumo da carteira processual">
@@ -1541,7 +1870,7 @@ function LawyerProcessesScreen({
           </div>
 
           {!selectedProcess || !selectedSummary ? (
-            <p>Selecione um processo para abrir os dados principais, o estado da analise e as razoes da decisao.</p>
+            <p>Selecione um processo para abrir os dados principais, o estado da analise e as razoes da decisão.</p>
           ) : (
             <div className="lawyer-process-detail">
               <section className="lawyer-summary-block lawyer-summary-block--form">
@@ -1596,10 +1925,8 @@ function LawyerProcessesScreen({
                 <p>Proxima etapa: {selectedSummary.nextStep}</p>
               </div>
 
-              {promptInjectionAlert ? (
-                <div className="pipeline-alert pipeline-alert--warning">
-                  <strong>Alerta de seguranca.</strong> {promptInjectionAlert}
-                </div>
+              {selectedProcess.documents.length > 0 ? (
+                <DocumentSecurityPanel documents={selectedProcess.documents} />
               ) : null}
 
               {selectedProcess.model_prediction ? (
@@ -1644,6 +1971,26 @@ function LawyerProcessesScreen({
                     </article>
                   </div>
                 </section>
+              ) : hasRejectedDocument ? (
+                <section className="decision-spotlight">
+                  <div className="decision-spotlight__hero">
+                    <span className="decision-spotlight__eyebrow">Encaminhamento por prompt injection</span>
+                    <strong className="decision-spotlight__title is-defesa">DEFESA</strong>
+                    <p>{selectedProcess.recommendation_summary}</p>
+                  </div>
+                  <div className="decision-spotlight__metrics">
+                    <article className="decision-metric-card">
+                      <span>Motivo da defesa</span>
+                      <strong>Prompt injection</strong>
+                      <small>O sanitizer identificou uma tentativa de fraude.</small>
+                    </article>
+                    <article className="decision-metric-card">
+                      <span>Protecao aplicada</span>
+                      <strong>Acordo bloqueado</strong>
+                      <small>O documento sinalizado nao foi encaminhado para o modelo de ML.</small>
+                    </article>
+                  </div>
+                </section>
               ) : (
                 <div className="lawyer-summary-block">
                   <span>Recomendacao do algoritmo</span>
@@ -1657,7 +2004,7 @@ function LawyerProcessesScreen({
                 <strong>
                   {selectedProcess.lawyer_confirmation
                     ? buildConfirmationLabel(selectedProcess.lawyer_confirmation.choice)
-                    : 'Escolha obrigatoria antes de registrar a resposta definitiva.'}
+                    : 'Escolha obrigatória antes de registrar a resposta definitiva.'}
                 </strong>
                 {selectedProcess.model_prediction ? (
                   <div className="decision-form">
@@ -1753,7 +2100,7 @@ function LawyerProcessesScreen({
                     <div className="acceptance-panel">
                       <div className="acceptance-panel__header">
                         <span className="detail-card__eyebrow">Etapa final</span>
-                        <h3>Aceitacao da decisao</h3>
+                        <h3>Aceitacao da decisão</h3>
                       </div>
                       <div className="decision-choice-grid">
                         <button
@@ -1763,7 +2110,7 @@ function LawyerProcessesScreen({
                           disabled={isBusy || !selectedProcess.feature_vector}
                         >
                           <span className="decision-choice-card__eyebrow">Conclusao</span>
-                          <strong>Aceitar decisao final</strong>
+                          <strong>Aceitar decisão final</strong>
                           <p>Registra que o advogado concluiu e aprovou a estrategia final do caso.</p>
                         </button>
 
@@ -1774,12 +2121,17 @@ function LawyerProcessesScreen({
                           disabled={isBusy || !selectedProcess.feature_vector}
                         >
                           <span className="decision-choice-card__eyebrow">Rejeicao</span>
-                          <strong>Nao aceitar decisao final</strong>
-                          <p>Registra que a decisao foi negada e precisa de nova avaliacao ou tratativa.</p>
+                          <strong>Nao aceitar decisão final</strong>
+                          <p>Registra que a decisão foi negada e precisa de nova avaliacao ou tratativa.</p>
                         </button>
                       </div>
                     </div>
                   </div>
+                ) : hasRejectedDocument ? (
+                  <p>
+                    A confirmacao juridica foi desabilitada porque o pipeline aplicou defesa por prompt injection
+                    apos identificar prompt injection.
+                  </p>
                 ) : (
                   <p>A confirmacao sera habilitada quando a recomendacao estruturada estiver pronta.</p>
                 )}
@@ -1796,9 +2148,9 @@ function LawyerProcessesScreen({
               </div>
 
               <div className="lawyer-summary-block">
-                <span>Razoes da decisao</span>
+                <span>Razões da decisão</span>
                 {selectedProcess.decision_reasons.length === 0 ? (
-                  <p>As razoes aparecerao aqui depois que o pipeline concluir a analise automatica.</p>
+                  <p>As razões aparecerao aqui depois que o pipeline concluir a analise automatica.</p>
                 ) : (
                   <div className="lawyer-reason-list">
                     {selectedProcess.decision_reasons.map((reason, index) => (
@@ -1821,17 +2173,19 @@ function LawyerProcessesScreen({
                   value={finalResponseDraft}
                   onChange={(event) => onFinalResponseDraftChange(event.target.value)}
                   placeholder="Escreva a conclusao juridica final do caso."
-                  disabled={isBusy || !selectedProcess.feature_vector}
+                  disabled={isBusy || !canFinalizeProcess}
                 />
 
                 <button
                   type="button"
                   className="submit-button"
                   onClick={() => void onFinalize()}
-                  disabled={isBusy || !selectedProcess.feature_vector}
+                  disabled={isBusy || !canFinalizeProcess}
                 >
                   {selectedProcess.analysis_state === 'resposta_definitiva'
                     ? 'Atualizar resposta definitiva'
+                    : selectedProcess.analysis_state === 'recusado_prompt_injection'
+                      ? 'Defesa por prompt injection aplicada'
                     : 'Registrar resposta definitiva'}
                 </button>
               </div>
@@ -1889,28 +2243,30 @@ function buildAcceptanceLabel(value: string) {
   return 'pendente'
 }
 
-function getPromptInjectionAlert(notes: string[]) {
-  const matchedNotes = notes.filter((note) => {
-    const normalized = note
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
+function getDocumentSecurityStatus() {
+  return {
+    eyebrow: 'Prompt injection confirmado',
+    title: 'Tentativa de prompt injection identificada',
+    description:
+      'O pipeline aplicou defesa por prompt injection. Este arquivo nao foi encaminhado para ML ou proposta de acordo.',
+  }
+}
 
-    return (
-      normalized.includes('prompt injection') ||
-      normalized.includes('possivel prompt injection') ||
-      normalized.includes('sinalizada para revisao') ||
-      normalized.includes('bloqueou o envio automatico') ||
-      (normalized.includes('sanitizer') &&
-        (normalized.includes('decisao review') || normalized.includes('decisao reject')))
-    )
-  })
-
-  if (matchedNotes.length === 0) {
-    return null
+function getSecurityFindingLabel(ruleId: string) {
+  const labels: Record<string, string> = {
+    direct_instruction_override: 'Tentativa de ignorar instrucoes',
+    assistant_targeted_override: 'Instrucao dirigida ao assistente ou modelo',
+    privileged_role_spoofing: 'Simulacao de instrucao privilegiada',
+    output_format_override: 'Tentativa de alterar o formato de retorno',
+    field_tampering_instruction: 'Tentativa de alterar campos extraidos',
+    policy_or_tool_override: 'Tentativa de alterar politicas ou filtros',
+    invisible_or_bidi_controls: 'Caracteres invisiveis ou direcionais',
+    disallowed_control_characters: 'Caracteres de controle nao permitidos',
+    input_limit_exceeded: 'Limite de inspecao excedido',
+    sanitizer_runtime_error: 'Falha operacional no sanitizer',
   }
 
-  return matchedNotes[0]
+  return labels[ruleId] ?? 'Sinal de prompt injection confirmado'
 }
 
 function getDecisionReasonTitle(reason: string, index: number) {
@@ -1925,6 +2281,14 @@ function getDecisionReasonTitle(reason: string, index: number) {
 
   if (normalized.includes('leitura consolidada dos autos')) {
     return 'Leitura dos autos'
+  }
+
+  if (normalized.includes('motivo da defesa')) {
+    return 'Motivo da defesa'
+  }
+
+  if (normalized.includes('protecao aplicada')) {
+    return 'Protecao contra prompt injection'
   }
 
   if (normalized.includes('foram analisados') && normalized.includes('documentos')) {
@@ -2018,7 +2382,16 @@ function getDisplayedRecommendationText(
 }
 
 function parseAmountInput(value: string) {
-  const parsed = Number(value.replace(',', '.'))
+  const normalized = value.trim().replace(/[R$\s]/g, '')
+
+  if (!normalized) {
+    return null
+  }
+
+  const decimalValue = normalized.includes(',')
+    ? normalized.replace(/\./g, '').replace(',', '.')
+    : normalized
+  const parsed = Number(decimalValue)
   return Number.isFinite(parsed) ? parsed : null
 }
 
@@ -2045,7 +2418,7 @@ function buildSuggestedFinalResponse(
           : 'aguardando aceite final'
 
     if (currentFinalStrategy === 'acordo' && displayedAgreementAmount !== null) {
-      return `Decisao final em edicao: acordo, ${adherenceLabel}, ${acceptanceLabel}. Valor considerado: ${formatCurrency(displayedAgreementAmount)}.`
+      return `Decisão final em edicao: acordo, ${adherenceLabel}, ${acceptanceLabel}. Valor considerado: ${formatCurrency(displayedAgreementAmount)}.`
     }
 
     return `Decisao final em edicao: ${currentFinalStrategy}, ${adherenceLabel}, ${acceptanceLabel}.`
@@ -2099,30 +2472,38 @@ function getProcessStatusLabel(process: LegalProcess) {
   return `${pipelineLabel} • ${analysisLabel}`
 }
 
+function hasRejectedPromptInjection(process: LegalProcess | null | undefined) {
+  return (
+    process?.documents.some(
+      (document) => document.security_assessment?.decision === 'reject',
+    ) ?? false
+  )
+}
+
 function buildLawyerProcessFacts(process: LegalProcess) {
   return [
     {
       label: 'Numero do processo',
-      value: String(process.extracted_data?.numero_processo ?? 'Nao identificado'),
+      value: String(process.extracted_data?.numero_processo ?? 'Não identificado'),
     },
     {
       label: 'Autor',
-      value: String(process.extracted_data?.nome_autor ?? 'Nao identificado'),
+      value: String(process.extracted_data?.nome_autor ?? 'Não identificado'),
     },
     {
       label: 'Reu',
-      value: String(process.extracted_data?.nome_reu ?? 'Nao identificado'),
+      value: String(process.extracted_data?.nome_reu ?? 'Não identificado'),
     },
     {
       label: 'Assunto',
-      value: String(process.extracted_data?.assunto ?? 'Nao identificado'),
+      value: String(process.extracted_data?.assunto ?? 'Não identificado'),
     },
     {
       label: 'Valor da causa',
       value:
         process.extracted_data?.valor_causa !== undefined
           ? formatValue(process.extracted_data.valor_causa)
-          : 'Nao identificado',
+          : 'Não identificado',
     },
     {
       label: 'Documentos enviados',
@@ -2190,6 +2571,13 @@ function buildCaseSummary(process: LegalProcess) {
           ? 'Resposta final registrada'
           : 'Recomendacao pronta',
     },
+    recusado_prompt_injection: {
+      currentStep: 'Defesa por prompt injection aplicada pelo pipeline',
+      nextStep: 'Consultar o motivo da defesa e os achados de prompt injection',
+      phaseLabel: 'Defesa por prompt injection',
+      isPending: false,
+      statusLabel: 'Defesa por prompt injection',
+    },
   }
   const defaultStatus = {
     currentStep: 'Status em atualizacao',
@@ -2237,7 +2625,8 @@ function buildPendingQueue(processes: LegalProcess[]): PendingItem[] {
     })
 }
 
-function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnapshot {
+function buildEmployeeInsights(processes: LegalProcess[]): EmployeeInsightsSnapshot {
+  void processes
   const fixture = EXECUTIVE_INSIGHTS_FIXTURE
   const summary = fixture.resumo_kpis
   const periods = fixture.grafico_evolucao_trimestral
@@ -2268,7 +2657,7 @@ function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnap
       tone: 'amber',
     },
     {
-      label: 'Adesao a plataforma',
+      label: 'Adesão a plataforma',
       value: formatPercentage(summary.adesao_plataforma_pct / 100),
       description: `${summary.casos_seguidos_q4.toLocaleString('pt-BR')} casos seguidos no trimestre.`,
       impact: '',
@@ -2280,13 +2669,13 @@ function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnap
   return {
     metrics,
     chart: {
-      title: 'Impacto direto: COM ENTER vs. historico sem ENTER',
+      title: 'Impacto direto',
       description:
-        'A evolucao trimestral destaca a adesao a plataforma, o exito juridico e a linha de base historica da operacao.',
+        'A evolucao trimestral destaca a adesão a plataforma, o éxito jurídico e a linha de base histórica da operação.',
       spotlight: fixture.periodo.replace('_', ' / '),
       series: [
         {
-          label: 'Adesao a recomendacao',
+          label: 'Adesão a recomendacao',
           colorClassName: 'is-cyan',
           points: periods.map((period) => ({
             title: `${period.trimestre} · ${formatValue(period.processos)} processos`,
@@ -2296,7 +2685,7 @@ function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnap
           })),
         },
         {
-          label: 'Exito juridico',
+          label: 'Éxito juridico',
           colorClassName: 'is-emerald',
           points: periods.map((period) => ({
             title: `${period.trimestre} · ${formatValue(period.processos)} processos`,
@@ -2306,7 +2695,7 @@ function buildEmployeeInsights(_processes: LegalProcess[]): EmployeeInsightsSnap
           })),
         },
         {
-          label: 'Historico sem ENTER',
+          label: 'Histórico sem Nosso Produto',
           colorClassName: 'is-rose',
           lineStyle: 'dashed',
           points: periods.map((period) => ({
@@ -2348,6 +2737,11 @@ function buildEmployeeSectionMetrics(
       'Base real de processos usada para consolidar os indicadores executivos.',
       'Carteira que ainda nao fechou o ciclo completo ou segue sob revisao.',
       'Casos com recomendacao ou resposta suficiente para alimentar os insights.',
+    ],
+    additional_analysis: [
+      'Processos com analise concluida e dados suficientes para projetar custos.',
+      'Casos que ainda precisam concluir o pipeline para habilitar a simulacao.',
+      'Processos com recomendacao disponivel para comparar defesa e acordo.',
     ],
     cases: [
       'Volume real de casos sincronizados a partir da carteira processual.',

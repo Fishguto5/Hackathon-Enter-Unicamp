@@ -53,13 +53,20 @@ def _normalize_text(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
 
 
+def normalize_pdf_extraction_artifacts(text: str) -> str:
+    """Remove the DEL glyph that pypdf can emit for non-text PDF layout marks."""
+    return text.replace("\x7f", " ")
+
+
 def extract_text_from_bytes(file_bytes: bytes, filename: str) -> tuple[str, list[str]]:
     notes: list[str] = []
     if filename.lower().endswith(".pdf"):
         try:
             reader = PdfReader(io.BytesIO(file_bytes))
             pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
-            text = "\n".join(chunk for chunk in pages_text if chunk)
+            text = normalize_pdf_extraction_artifacts(
+                "\n".join(chunk for chunk in pages_text if chunk)
+            )
             if text:
                 return text, notes
             notes.append(

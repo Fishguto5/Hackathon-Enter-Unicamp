@@ -521,6 +521,36 @@ class StructuredExtractionService:
         self._model = os.getenv("OPENAI_MODEL", "gpt-5")
         self._prompt_safety = EnterOSPromptInjectionAdapter()
 
+    def inspect_document_safety(self, filename: str, text: str) -> dict[str, Any]:
+        """Return an auditable, document-scoped safety result without exposing raw content."""
+        guarded_input = self._prompt_safety.guard_document(filename=filename, text=text)
+        return {
+            "decision": guarded_input.decision.value,
+            "policy_version": guarded_input.policy_version,
+            "finding_count": len(guarded_input.findings),
+            "change_count": len(guarded_input.changes),
+            "findings": [
+                {
+                    "rule_id": finding.rule_id,
+                    "category": finding.category,
+                    "severity": finding.severity,
+                    "message": finding.message,
+                    "line_numbers": list(finding.line_numbers),
+                }
+                for finding in guarded_input.findings
+            ],
+            "changes": [
+                {
+                    "change_id": change.change_id,
+                    "category": change.category,
+                    "message": change.message,
+                    "line_numbers": list(change.line_numbers),
+                    "count": change.count,
+                }
+                for change in guarded_input.changes
+            ],
+        }
+
     def extract(self, case_name: str, combined_text: str) -> tuple[dict[str, Any], list[str]]:
         notes: list[str] = []
 

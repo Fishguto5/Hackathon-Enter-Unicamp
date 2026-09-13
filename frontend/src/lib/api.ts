@@ -7,6 +7,26 @@ export type ProcessDocument = {
   subsidy_hits: Record<string, number>
   classification?: string
   text_preview: string
+  security_assessment: {
+    decision: 'reject'
+    policy_version: string
+    finding_count: number
+    change_count: number
+    findings: Array<{
+      rule_id: string
+      category: string
+      severity: string
+      message: string
+      line_numbers: number[]
+    }>
+    changes: Array<{
+      change_id: string
+      category: string
+      message: string
+      line_numbers: number[]
+      count: number
+    }>
+  } | null
 }
 
 export type LegalProcess = {
@@ -57,6 +77,11 @@ export type LegalProcess = {
       weight: number
       multiplier: number
       contribution: number
+      source_documents?: Array<{
+        filename: string
+        excerpt: string | null
+      }>
+      facts_considered?: string[]
     }>
     ifp: number
     ifp_raw: number
