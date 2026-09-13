@@ -128,6 +128,29 @@ DIRECTIVE_PATTERNS: tuple[tuple[str, str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+# A confirmed injection can be split over several PDF extraction lines.  Treat it as
+# conclusive only when a single short block combines target, precedence and mutation.
+CONTEXTUAL_TARGET_PATTERN = re.compile(
+    r"\b(?:instrucao|orientacao|nota|comando)\b.{0,60}"
+    r"\b(?:para|ao|a)\b.{0,30}"
+    r"\b(?:o\s+)?(?:assistente|assistant|modelo|model|llm|ia|ai)\b",
+    re.IGNORECASE,
+)
+CONTEXTUAL_PRECEDENCE_PATTERN = re.compile(
+    r"\b(?:prioridade|precedencia)\b.{0,100}"
+    r"\b(?:instrucoes?|orientacoes?|prompt|sistema|system)\b"
+    r"|\b(?:ignore|ignorar|desconsidere|desconsiderar|abandone)\b.{0,100}"
+    r"\b(?:instrucoes?|orientacoes?|prompt|sistema|system|anteriores?)\b",
+    re.IGNORECASE,
+)
+CONTEXTUAL_FIELD_MUTATION_PATTERN = re.compile(
+    r"\b(?:preencha|substitua|troque|altere|mude|replace|fill)\b.{0,120}"
+    r"\b(?:campo|field|nome[_\s]?autor|autor|autora|reu|valor|resultado_macro|"
+    r"resultado_micro|documentos|subsidios)\b",
+    re.IGNORECASE,
+)
+CONTEXTUAL_WINDOW_LINE_COUNT = 8
+
 SEVERITY_SCORES = {
     "low": 1,
     "medium": 2,
@@ -276,6 +299,8 @@ class PromptInjectionSanitizer:
         seen: set[tuple[str, tuple[int, ...], str | None]] = set()
         lines = treated_text.split("\n")
 
+        findings.extend(self._detect_contextual_instruction_hijacks(lines, policy))
+
         for line_number, line in enumerate(lines, start=1):
             normalized_line = self._normalize_for_detection(line)
             if not normalized_line:
@@ -317,6 +342,37 @@ class PromptInjectionSanitizer:
                 )
 
         return findings
+
+    def _detect_contextual_instruction_hijacks(
+        self,
+        lines: list[str],
+        policy: SanitizerPolicy,
+    ) -> list[SanitizerFinding]:
+        """Detect a complete instruction hijack when PDF text wraps it across lines."""
+        for start in range(len(lines)):
+            window_lines = lines[start : start + CONTEXTUAL_WINDOW_LINE_COUNT]
+            normalized_window = self._normalize_for_detection("\n".join(window_lines))
+            if not normalized_window:
+                continue
+            if not CONTEXTUAL_TARGET_PATTERN.search(normalized_window):
+                continue
+            if not CONTEXTUAL_PRECEDENCE_PATTERN.search(normalized_window):
+                continue
+            if not CONTEXTUAL_FIELD_MUTATION_PATTERN.search(normalized_window):
+                continue
+
+            end = start + len(window_lines)
+            return [
+                SanitizerFinding(
+                    rule_id="contextual_instruction_hijack",
+                    category="instruction_override",
+                    severity="high",
+                    message=self._build_rule_message("contextual_instruction_hijack"),
+                    line_numbers=tuple(range(start + 1, end + 1)),
+                    excerpt=self._build_excerpt("\n".join(window_lines), policy.max_excerpt_chars),
+                )
+            ]
+        return []
 
     def _decide(
         self,
@@ -383,6 +439,10 @@ class PromptInjectionSanitizer:
             ),
             "policy_or_tool_override": (
                 "The document appears to ask the model to alter policies, validations or tool behavior."
+            ),
+            "contextual_instruction_hijack": (
+                "The document combines an instruction to the model, precedence over existing guidance "
+                "and a request to alter structured case data."
             ),
         }
         return messages.get(rule_id, "Potential prompt injection signal detected.")

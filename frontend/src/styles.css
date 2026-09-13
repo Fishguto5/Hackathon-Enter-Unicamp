@@ -2027,7 +2027,7 @@ input {
 }
 
 .lawyer-process-board {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .lawyer-process-card,
@@ -2040,8 +2040,9 @@ input {
 
 .lawyer-process-card {
   display: grid;
-  gap: 10px;
-  padding: 18px;
+  gap: 16px;
+  min-height: 156px;
+  padding: 24px 28px;
   text-align: left;
   transition:
     transform 180ms ease,
@@ -2082,6 +2083,62 @@ input {
   margin: 0;
   color: var(--color-text-muted);
   line-height: 1.6;
+}
+
+.lawyer-process-card__status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.lawyer-process-card__status > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border-left: 2px solid rgba(255, 174, 53, 0.46);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.lawyer-process-card__status span,
+.lawyer-process-card__footer small {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.lawyer-process-card__status strong {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.lawyer-process-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lawyer-process-card__footer > span {
+  color: var(--color-accent-strong);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.lawyer-cases-layout.is-detail-view {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.process-detail-back-button {
+  flex: 0 0 auto;
+  border-color: rgba(255, 174, 53, 0.42);
+  background: #fff8ec;
+  color: var(--color-accent-strong);
+  font-weight: 800;
+}
+
+.process-detail-back-button:hover,
+.process-detail-back-button:focus-visible {
+  border-color: var(--color-accent);
+  background: rgba(255, 174, 53, 0.16);
 }
 
 .lawyer-process-detail {
@@ -2642,6 +2699,7 @@ input {
   .process-summary,
   .lawyer-process-board,
   .lawyer-detail-grid,
+  .lawyer-process-card__status,
   .decision-spotlight__metrics,
   .decision-choice-grid,
   .agreement-editor__grid,
