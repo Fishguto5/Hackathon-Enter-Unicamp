@@ -21,6 +21,7 @@ type TaskItem = {
 
 export type DashboardSectionId =
   | 'home'
+  | 'insights'
   | 'cases'
   | 'triage'
   | 'policy'
@@ -120,6 +121,43 @@ export const dashboardSections: readonly DashboardSection[] = [
       {
         title: 'Prioridades criticas',
         description: 'Concentre a agenda nos casos com prazo processual curto e contato de acordo pendente.',
+      },
+    ],
+  },
+  {
+    id: 'insights',
+    label: 'Insights',
+    shortDescription: 'Impacto juridico, financeiro e governanca da carteira.',
+    heroTitle: 'Leitura executiva da carteira com foco em resultado',
+    heroDescription: 'Transforma os processos da base em indicadores de exito, perdas evitadas, acordos e overrides.',
+    tag: 'Painel executivo',
+    employeeMetrics: [
+      {
+        label: 'Taxa de exito',
+        value: '0%',
+        description: 'Percentual de vitorias mapeadas entre os casos com desfecho identificado.',
+        trend: [0, 8, 12, 18, 24, 30],
+      },
+    ],
+    employeeNarrative:
+      'A tela de insights traduz a carteira processual em eficiencia juridica, economia projetada e qualidade da interacao entre time humano e recomendacao algoritmica.',
+    employeeTrend: [8, 16, 24, 36, 44, 58],
+    lawyerMetric: {
+      label: 'Leitura da carteira',
+      value: 'Insights do banco',
+      description: 'Resumo executivo focado no impacto da operacao para a instituicao financeira.',
+      trend: [10, 14, 21, 29, 38, 46],
+    },
+    lawyerNarrative:
+      'Esta tela foi desenhada para o usuario interno do banco acompanhar resultado, risco e governanca da operacao.',
+    lawyerTasks: [
+      {
+        title: 'Saude da carteira',
+        description: 'Verifique a relacao entre vitorias, acordos e perdas em processos com desfecho identificado.',
+      },
+      {
+        title: 'Governanca de override',
+        description: 'Entenda quando a intervencao humana agregou valor frente a recomendacao da IA.',
       },
     ],
   },

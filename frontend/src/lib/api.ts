@@ -185,6 +185,40 @@ export async function createProcess(name: string): Promise<LegalProcess> {
   return parseJsonResponse<LegalProcess>(response)
 }
 
+export async function updateProcess(
+  processId: string,
+  payload: { name: string },
+): Promise<LegalProcess> {
+  const response = await safeFetch(buildApiUrl(`/api/processes/${processId}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+
+  return parseJsonResponse<LegalProcess>(response)
+}
+
+export async function deleteProcess(processId: string): Promise<void> {
+  const response = await safeFetch(buildApiUrl(`/api/processes/${processId}`), {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    const rawBody = await response.text()
+    let payload: { error?: string } | null = null
+
+    if (rawBody.trim()) {
+      try {
+        payload = JSON.parse(rawBody) as { error?: string }
+      } catch {
+        payload = null
+      }
+    }
+
+    throw new Error(payload?.error ?? `Falha ao deletar o processo. Status ${response.status}.`)
+  }
+}
+
 export async function uploadProcessDocuments(
   processId: string,
   files: File[],

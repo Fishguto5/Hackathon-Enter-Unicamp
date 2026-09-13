@@ -13,10 +13,12 @@ import {
 import {
   analyzeProcess,
   createProcess,
+  deleteProcess,
   downloadProcessExport,
   finalizeProcess,
   listProcesses,
   type LegalProcess,
+  updateProcess,
   uploadProcessDocuments,
 } from '../lib/api'
 
@@ -36,6 +38,28 @@ type ChartDatum = {
   label: string
   shortLabel?: string
   value: number
+}
+
+type InsightMetricCard = {
+  label: string
+  value: string
+  description: string
+  impact: string
+  supportingLabel: string
+}
+
+type InsightSummaryCard = {
+  eyebrow: string
+  title: string
+  description: string
+  spotlight: string
+  supportingStats: Array<{ label: string; value: string }>
+}
+
+type EmployeeInsightsSnapshot = {
+  metrics: InsightMetricCard[]
+  legalSummary: InsightSummaryCard
+  financialSummary: InsightSummaryCard
 }
 
 const statusLabels: Record<string, string> = {
@@ -197,6 +221,10 @@ function EmployeeOverview({
   const metrics = buildEmployeeSectionMetrics(currentSection.id, processes)
   const focusChart = buildEmployeeFocusChart(currentSection.id, processes)
 
+  if (currentSection.id === 'insights') {
+    return <EmployeeInsightsView processes={processes} />
+  }
+
   if (currentSection.id === 'cases') {
     return (
       <EmployeeCasesView
@@ -268,6 +296,75 @@ function EmployeeOverview({
             ))}
           </div>
         </article>
+      </section>
+    </div>
+  )
+}
+
+function EmployeeInsightsView({ processes }: { processes: LegalProcess[] }) {
+  const insights = buildEmployeeInsights(processes)
+
+  return (
+    <div className="workspace-content">
+      <section className="insights-panel-grid">
+        <article className="detail-card detail-card--wide insight-hero-card insight-hero-card--legal">
+          <div className="detail-card__header">
+            <div>
+              <span className="detail-card__eyebrow">{insights.legalSummary.eyebrow}</span>
+              <h2>{insights.legalSummary.title}</h2>
+            </div>
+            <span className="detail-card__tag">{insights.legalSummary.spotlight}</span>
+          </div>
+
+          <p>{insights.legalSummary.description}</p>
+
+          <div className="insight-stat-strip">
+            {insights.legalSummary.supportingStats.map((item) => (
+              <article key={item.label} className="insight-stat-pill">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
+          </div>
+        </article>
+
+        <article className="detail-card insight-hero-card insight-hero-card--finance">
+          <div className="detail-card__header">
+            <div>
+              <span className="detail-card__eyebrow">{insights.financialSummary.eyebrow}</span>
+              <h2>{insights.financialSummary.title}</h2>
+            </div>
+            <span className="detail-card__tag">{insights.financialSummary.spotlight}</span>
+          </div>
+
+          <p>{insights.financialSummary.description}</p>
+
+          <div className="insight-stat-strip insight-stat-strip--stacked">
+            {insights.financialSummary.supportingStats.map((item) => (
+              <article key={item.label} className="insight-stat-pill">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="metrics-grid metrics-grid--insights" aria-label="Metricas executivas">
+        {insights.metrics.map((metric) => (
+          <article key={metric.label} className="metric-card insight-metric-card">
+            <div className="metric-card__top">
+              <div>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+              </div>
+              <small>{metric.supportingLabel}</small>
+            </div>
+
+            <p>{metric.description}</p>
+            <div className="insight-impact-note">{metric.impact}</div>
+          </article>
+        ))}
       </section>
     </div>
   )
@@ -410,6 +507,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'overview' | 'cases'>('overview')
   const [processName, setProcessName] = useState('')
+  const [processNameDraft, setProcessNameDraft] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [finalResponseDraft, setFinalResponseDraft] = useState('')
   const [lastAutoFinalResponse, setLastAutoFinalResponse] = useState('')
@@ -429,7 +527,9 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     try {
       const items = await listProcesses()
       setProcesses(items)
-      setSelectedProcessId((current) => current ?? items[0]?.id ?? null)
+      setSelectedProcessId((current) =>
+        current && items.some((process) => process.id === current) ? current : items[0]?.id ?? null,
+      )
       setError(null)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Falha ao carregar processos.')
@@ -441,6 +541,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
 
   useEffect(() => {
     if (!selectedProcess) {
+      setProcessNameDraft('')
       setFinalResponseDraft('')
       setLastAutoFinalResponse('')
       setConfirmationChoice('')
@@ -487,6 +588,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       nextFinalAcceptanceStatus,
     )
 
+    setProcessNameDraft(selectedProcess.name)
     setFinalResponseDraft(selectedProcess.final_response ?? nextAutoFinalResponse)
     setLastAutoFinalResponse(nextAutoFinalResponse)
     setConfirmationChoice(nextConfirmationChoice)
@@ -544,6 +646,12 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       return [updated, ...remaining]
     })
     setSelectedProcessId(updated.id)
+  }
+
+  function removeProcess(processId: string) {
+    const remaining = processes.filter((process) => process.id !== processId)
+    setProcesses(remaining)
+    setSelectedProcessId((current) => (current === processId ? remaining[0]?.id ?? null : current))
   }
 
   async function handleCreateProcess(event: FormEvent<HTMLFormElement>) {
@@ -698,6 +806,62 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     }
   }
 
+  async function handleUpdateProcessName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedProcess) {
+      setError('Selecione um processo para alterar o nome.')
+      return
+    }
+    if (!processNameDraft.trim()) {
+      setError('Informe um nome valido para o processo.')
+      return
+    }
+
+    setIsBusy(true)
+    setError(null)
+    setFeedback(null)
+
+    try {
+      const updated = await updateProcess(selectedProcess.id, {
+        name: processNameDraft.trim(),
+      })
+      replaceProcess(updated)
+      setFeedback('Nome do processo atualizado com sucesso.')
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Falha ao atualizar o processo.')
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  async function handleDeleteProcess() {
+    if (!selectedProcess) {
+      setError('Selecione um processo para excluir.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Deseja realmente excluir o processo "${selectedProcess.name}"? Essa acao nao pode ser desfeita.`,
+    )
+    if (!confirmed) {
+      return
+    }
+
+    setIsBusy(true)
+    setError(null)
+    setFeedback(null)
+
+    try {
+      await deleteProcess(selectedProcess.id)
+      removeProcess(selectedProcess.id)
+      setFeedback('Processo excluido com sucesso.')
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Falha ao excluir o processo.')
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
   const processStatus = selectedProcess ? getProcessStatusLabel(selectedProcess) : 'Sem selecao'
   const recommendationReadyCount = processes.filter(
     (process) => process.analysis_state === 'recomendacao_gerada',
@@ -832,13 +996,17 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
             onAlternativeStrategyChange={setAlternativeStrategy}
             onFinalAcceptanceStatusChange={setFinalAcceptanceStatus}
             onConfirmationChoiceChange={setConfirmationChoice}
+            onDeleteProcess={handleDeleteProcess}
             onFinalResponseDraftChange={setFinalResponseDraft}
+            onProcessNameDraftChange={setProcessNameDraft}
             onProposedAgreementValueChange={setProposedAgreementValue}
             onRefresh={loadProcesses}
             onSelectProcess={setSelectedProcessId}
             processes={processes}
+            processNameDraft={processNameDraft}
             proposedAgreementValue={proposedAgreementValue}
             selectedProcess={selectedProcess}
+            onUpdateProcessName={handleUpdateProcessName}
           />
         )}
       </section>
@@ -1167,13 +1335,17 @@ function LawyerProcessesScreen({
   onAlternativeStrategyChange,
   onFinalAcceptanceStatusChange,
   onConfirmationChoiceChange,
+  onDeleteProcess,
   onFinalResponseDraftChange,
+  onProcessNameDraftChange,
   onProposedAgreementValueChange,
   onRefresh,
   onSelectProcess,
   processes,
+  processNameDraft,
   proposedAgreementValue,
   selectedProcess,
+  onUpdateProcessName,
 }: {
   alternativeStrategy: StrategyOption
   confirmationChoice: LawyerConfirmationChoice
@@ -1184,13 +1356,17 @@ function LawyerProcessesScreen({
   onAlternativeStrategyChange: (value: StrategyOption) => void
   onFinalAcceptanceStatusChange: (value: FinalAcceptanceStatus) => void
   onConfirmationChoiceChange: (value: LawyerConfirmationChoice) => void
+  onDeleteProcess: () => Promise<void>
   onFinalResponseDraftChange: (value: string) => void
+  onProcessNameDraftChange: (value: string) => void
   onProposedAgreementValueChange: (value: string) => void
   onRefresh: () => Promise<void>
   onSelectProcess: (processId: string) => void
   processes: LegalProcess[]
+  processNameDraft: string
   proposedAgreementValue: string
   selectedProcess: LegalProcess | null
+  onUpdateProcessName: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   const recommendationReadyCount = processes.filter(
     (process) => process.analysis_state === 'recomendacao_gerada',
@@ -1323,6 +1499,35 @@ function LawyerProcessesScreen({
             <p>Selecione um processo para abrir os dados principais, o estado da analise e as razoes da decisao.</p>
           ) : (
             <div className="lawyer-process-detail">
+              <section className="lawyer-summary-block lawyer-summary-block--form">
+                <span>Gestao do processo</span>
+                <form className="pipeline-form" onSubmit={onUpdateProcessName}>
+                  <label htmlFor="edit-process-name">Nome do processo</label>
+                  <input
+                    id="edit-process-name"
+                    value={processNameDraft}
+                    onChange={(event) => onProcessNameDraftChange(event.target.value)}
+                    placeholder="Atualize o nome exibido do processo"
+                    disabled={isBusy}
+                    required
+                  />
+
+                  <div className="pipeline-actions process-management-actions">
+                    <button type="submit" className="submit-button" disabled={isBusy}>
+                      {isBusy ? 'Salvando...' : 'Salvar alteracao'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button danger-button"
+                      onClick={() => void onDeleteProcess()}
+                      disabled={isBusy}
+                    >
+                      Excluir processo
+                    </button>
+                  </div>
+                </form>
+              </section>
+
               <div className="lawyer-process-detail__header">
                 <strong>{selectedProcess.name}</strong>
                 <div className="lawyer-status-row">
@@ -1918,6 +2123,243 @@ function buildPendingQueue(processes: LegalProcess[]): PendingItem[] {
     })
 }
 
+function buildEmployeeInsights(processes: LegalProcess[]): EmployeeInsightsSnapshot {
+  const processesWithOutcome = processes.filter((process) => getProcessOutcomeForInsights(process) !== 'open')
+  const victoryProcesses = processesWithOutcome.filter(
+    (process) => getProcessOutcomeForInsights(process) === 'victory',
+  )
+  const agreementProcesses = processesWithOutcome.filter(
+    (process) => getProcessOutcomeForInsights(process) === 'agreement',
+  )
+  const lossProcesses = processesWithOutcome.filter(
+    (process) => getProcessOutcomeForInsights(process) === 'loss',
+  )
+  const closedCount = processesWithOutcome.length
+  const agreementCount = agreementProcesses.length
+  const victoryCount = victoryProcesses.length
+  const lossCount = lossProcesses.length
+  const successRate = closedCount > 0 ? victoryCount / closedCount : 0
+  const agreementRate = closedCount > 0 ? agreementCount / closedCount : 0
+  const savedLosses = processes.reduce(
+    (total, process) => total + estimateSavedLosses(process),
+    0,
+  )
+  const totalClaimExposure = processes.reduce((total, process) => {
+    const claimAmount = getClaimAmount(process)
+    return total + (claimAmount ?? 0)
+  }, 0)
+  const roiRate = totalClaimExposure > 0 ? savedLosses / totalClaimExposure : 0
+
+  const overrideProcesses = processes.filter(
+    (process) => process.lawyer_confirmation?.choice === 'seguir_outra_estrategia',
+  )
+  const positiveOverrides = overrideProcesses.filter(
+    (process) => getOverrideAssessment(process) === 'positive',
+  ).length
+  const cautionOverrides = overrideProcesses.filter(
+    (process) => getOverrideAssessment(process) === 'caution',
+  ).length
+  const neutralOverrides = overrideProcesses.filter(
+    (process) => getOverrideAssessment(process) === 'neutral',
+  ).length
+  const overrideQuality =
+    overrideProcesses.length > 0 ? positiveOverrides / overrideProcesses.length : 0
+  const followedAlgorithmCount = processes.filter(
+    (process) => process.lawyer_confirmation?.choice === 'seguir_algoritmo',
+  ).length
+
+  const metrics: InsightMetricCard[] = [
+    {
+      label: 'Taxa de exito',
+      value: formatPercentage(successRate),
+      description:
+        'Percentual de processos com sinal de improcedencia ou extincao entre os casos com desfecho identificado.',
+      impact:
+        'Impacto direto: mostra a forca das teses defensivas e a blindagem da carteira contra litigancia predatoria.',
+      supportingLabel: `${victoryCount} vitorias mapeadas`,
+    },
+    {
+      label: 'Perdas evitadas',
+      value: formatCurrency(savedLosses),
+      description:
+        'Soma estimada do valor preservado em pedidos rejeitados e em acordos fechados abaixo do valor da causa.',
+      impact:
+        'Impacto direto: traduz a operacao em ROI financeiro, indicando quanto deixou de sair do caixa do banco.',
+      supportingLabel: `${formatPercentage(roiRate)} do risco capturado`,
+    },
+    {
+      label: 'Taxa de acordo',
+      value: formatPercentage(agreementRate),
+      description:
+        'Percentual de processos encerrados ou sinalizados como acordo dentro da base com desfecho identificado.',
+      impact:
+        'Impacto direto: mede reducao de passivo e capacidade de encerrar casos antes de custos prolongados.',
+      supportingLabel: `${agreementCount} acordos identificados`,
+    },
+    {
+      label: 'Qualidade dos overrides',
+      value: formatPercentage(overrideQuality),
+      description:
+        'Leitura da qualidade das divergencias humanas quando o advogado nao segue a recomendacao da IA.',
+      impact:
+        'Impacto direto: reforca a governanca algoritmica ao evidenciar quando a intervencao humana agregou valor.',
+      supportingLabel: `${overrideProcesses.length} overrides avaliados`,
+    },
+  ]
+
+  return {
+    metrics,
+    legalSummary: {
+      eyebrow: 'Eficiencia Juridica',
+      title: 'Forca da tese defensiva e dos acordos na carteira',
+      description:
+        'Este bloco acompanha a distribuicao entre vitorias, acordos e perdas para mostrar se a politica juridica esta reduzindo litigiosidade e preservando caixa com criterio.',
+      spotlight: `${closedCount} casos com desfecho`,
+      supportingStats: [
+        { label: 'Vitorias mapeadas', value: formatValue(victoryCount) },
+        { label: 'Acordos mapeados', value: formatValue(agreementCount) },
+        { label: 'Perdas ou risco', value: formatValue(lossCount) },
+      ],
+    },
+    financialSummary: {
+      eyebrow: 'Eficiencia Financeira & Algoritmica',
+      title: 'Valor preservado e disciplina de governanca humano + IA',
+      description:
+        'Compara o valor economizado com o comportamento das decisoes humanas frente ao algoritmo, destacando quando a governanca manteve coerencia e quando exigiu maior atencao.',
+      spotlight: `${formatPercentage(roiRate)} de ROI estimado`,
+      supportingStats: [
+        { label: 'Seguiram a IA', value: formatValue(followedAlgorithmCount) },
+        { label: 'Overrides positivos', value: formatValue(positiveOverrides) },
+        { label: 'Overrides sob atencao', value: formatValue(cautionOverrides + neutralOverrides) },
+      ],
+    },
+  }
+}
+
+function getProcessOutcomeForInsights(process: LegalProcess) {
+  const macro = normalizeText(process.extracted_data?.resultado_macro)
+  const evidenceText = normalizeText(
+    `${String(process.extracted_data?.resultado_micro ?? '')} ${process.final_response ?? ''} ${process.recommendation_summary ?? ''}`,
+  )
+  const finalStrategy = process.lawyer_confirmation?.final_strategy
+
+  if (macro.includes('improced') || evidenceText.includes('improced')) {
+    return 'victory' as const
+  }
+
+  if (macro.includes('extinc') || evidenceText.includes('extinc')) {
+    return 'victory' as const
+  }
+
+  if (
+    finalStrategy === 'acordo' ||
+    macro.includes('acordo') ||
+    evidenceText.includes('acordo') ||
+    evidenceText.includes('concili')
+  ) {
+    return 'agreement' as const
+  }
+
+  if (macro.includes('proced') || evidenceText.includes('proced')) {
+    return 'loss' as const
+  }
+
+  return 'open' as const
+}
+
+function estimateSavedLosses(process: LegalProcess) {
+  const claimAmount = getClaimAmount(process)
+  if (claimAmount === null || claimAmount <= 0) {
+    return 0
+  }
+
+  const outcome = getProcessOutcomeForInsights(process)
+  if (outcome === 'victory') {
+    return claimAmount
+  }
+
+  if (outcome === 'agreement') {
+    const agreementAmount = getEffectiveAgreementAmount(process)
+    if (agreementAmount === null) {
+      return 0
+    }
+
+    return Math.max(claimAmount - agreementAmount, 0)
+  }
+
+  return 0
+}
+
+function getOverrideAssessment(process: LegalProcess) {
+  const lawyerConfirmation = process.lawyer_confirmation
+  if (!lawyerConfirmation || lawyerConfirmation.choice !== 'seguir_outra_estrategia') {
+    return 'neutral' as const
+  }
+
+  const outcome = getProcessOutcomeForInsights(process)
+  const claimAmount = getClaimAmount(process)
+  const agreementAmount = getEffectiveAgreementAmount(process)
+  const successProbability = process.model_prediction?.probability_success ?? 0
+  const threshold = process.model_prediction?.threshold_success ?? 0
+
+  if (lawyerConfirmation.final_strategy === 'defesa') {
+    if (outcome === 'victory' || successProbability >= Math.max(threshold - 0.08, 0)) {
+      return 'positive' as const
+    }
+
+    return outcome === 'open' ? ('neutral' as const) : ('caution' as const)
+  }
+
+  if (lawyerConfirmation.final_strategy === 'acordo') {
+    if (
+      claimAmount !== null &&
+      agreementAmount !== null &&
+      agreementAmount > 0 &&
+      agreementAmount <= claimAmount * 0.7
+    ) {
+      return 'positive' as const
+    }
+
+    if (outcome === 'agreement' && claimAmount !== null && agreementAmount !== null && agreementAmount < claimAmount) {
+      return 'positive' as const
+    }
+
+    return outcome === 'open' ? ('neutral' as const) : ('caution' as const)
+  }
+
+  return 'neutral' as const
+}
+
+function getClaimAmount(process: LegalProcess) {
+  const extractedValue = process.extracted_data?.valor_causa
+  if (typeof extractedValue === 'number' && Number.isFinite(extractedValue)) {
+    return extractedValue
+  }
+
+  if (typeof extractedValue === 'string') {
+    const normalized = extractedValue
+      .replace(/[R$\s]/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+    const parsed = Number(normalized)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  const predictedValue = process.model_prediction?.claim_amount_brl
+  return typeof predictedValue === 'number' && Number.isFinite(predictedValue)
+    ? predictedValue
+    : null
+}
+
+function normalizeText(value: unknown) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 function buildEmployeeSectionMetrics(
   sectionId: DashboardSection['id'],
   processes: LegalProcess[],
@@ -1940,6 +2382,11 @@ function buildEmployeeSectionMetrics(
       'Quantidade real de processos cadastrados e disponiveis na operacao.',
       'Fila atual que ainda exige acao do pipeline ou revisao juridica.',
       'Casos em que a resposta final do advogado ja foi consolidada.',
+    ],
+    insights: [
+      'Base real de processos usada para consolidar os indicadores executivos.',
+      'Carteira que ainda nao fechou o ciclo completo ou segue sob revisao.',
+      'Casos com recomendacao ou resposta suficiente para alimentar os insights.',
     ],
     cases: [
       'Volume real de casos sincronizados a partir da carteira processual.',
@@ -2005,6 +2452,10 @@ function buildEmployeeFocusChart(
   sectionId: DashboardSection['id'],
   processes: LegalProcess[],
 ) {
+  if (sectionId === 'insights') {
+    return buildCompletionSeries(processes)
+  }
+
   if (sectionId === 'policy' || sectionId === 'results') {
     return buildAnalysisStateSeries(processes)
   }
@@ -2171,10 +2622,12 @@ function MiniChart({
   data,
   emphasis = 'medium',
   size = 'compact',
+  valueFormatter,
 }: {
   data: ChartDatum[]
   emphasis?: 'medium' | 'high'
   size?: 'compact' | 'expanded'
+  valueFormatter?: (value: number) => string
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const safeData = data.length > 0 ? data : [{ label: 'Sem dados', shortLabel: 'Sem', value: 0 }]
@@ -2185,6 +2638,7 @@ function MiniChart({
   )
   const clampedIndex = Math.min(hoveredIndex ?? defaultIndex, safeData.length - 1)
   const activeItem = safeData[clampedIndex]
+  const formatter = valueFormatter ?? ((value: number) => formatValue(value))
 
   return (
     <div
@@ -2192,7 +2646,7 @@ function MiniChart({
       onMouseLeave={() => setHoveredIndex(null)}
     >
       <div className="mini-chart__summary">
-        <strong>{formatValue(activeItem.value)}</strong>
+        <strong>{formatter(activeItem.value)}</strong>
         <span>{activeItem.label}</span>
       </div>
       <div className="mini-chart__grid" />
@@ -2206,7 +2660,7 @@ function MiniChart({
             onMouseEnter={() => setHoveredIndex(index)}
             onFocus={() => setHoveredIndex(index)}
             onBlur={() => setHoveredIndex(null)}
-            aria-label={`${item.label}: ${formatValue(item.value)}`}
+            aria-label={`${item.label}: ${formatter(item.value)}`}
           />
         ))}
       </div>
@@ -2225,8 +2679,8 @@ function MiniChart({
         ))}
       </div>
       <div className="mini-chart__footer">
-        <span>0</span>
-        <span>{formatValue(maxValue)}</span>
+        <span>{formatter(0)}</span>
+        <span>{formatter(maxValue)}</span>
       </div>
     </div>
   )

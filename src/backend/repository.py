@@ -27,3 +27,6 @@ class InMemoryProcessRepository:
     def save(self, process: ProcessRecord) -> ProcessRecord:
         self._processes[process.id] = process
         return process
+
+    def delete(self, process_id: str) -> ProcessRecord | None:
+        return self._processes.pop(process_id, None)

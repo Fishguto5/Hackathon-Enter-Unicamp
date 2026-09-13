@@ -174,7 +174,7 @@ def build_decision_reasons(
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PATCH,DELETE,OPTIONS"
     return response
 
 
@@ -295,6 +295,31 @@ def get_process(process_id: str):
     if not process:
         return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
     return jsonify(process.to_dict())
+
+
+@app.route("/api/processes/<process_id>", methods=["PATCH"])
+def update_process(process_id: str):
+    process = repository.get(process_id)
+    if not process:
+        return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
+
+    payload = request.get_json(silent=True) or {}
+    process_name = str(payload.get("name") or "").strip()
+    if not process_name:
+        return jsonify({"error": "Informe um nome valido para o processo."}), HTTPStatus.BAD_REQUEST
+
+    process.name = process_name
+    process.touch()
+    repository.save(process)
+    return jsonify(process.to_dict())
+
+
+@app.route("/api/processes/<process_id>", methods=["DELETE"])
+def delete_process(process_id: str):
+    deleted = repository.delete(process_id)
+    if not deleted:
+        return jsonify({"error": "Processo nao encontrado."}), HTTPStatus.NOT_FOUND
+    return jsonify({"deleted_process_id": process_id})
 
 
 @app.route("/api/processes/<process_id>/documents", methods=["POST"])
