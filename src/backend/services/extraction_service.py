@@ -6,6 +6,9 @@ import re
 from typing import Any
 
 from .document_service import classify_document
+from .prompt_injection_adapter import EnterOSPromptInjectionAdapter
+from .schema_validation import validate_payload_against_schema
+from ..security.prompt_injection_sanitizer import SanitizationDecision
 from ..models import SUBSIDY_DEFINITIONS
 
 try:
@@ -35,7 +38,6 @@ EXTRACTION_SCHEMA = {
         "numero_processo",
         "genero",
         "resumo_analitico",
-        "fonte_extracao",
     ],
     "properties": {
         "nome_autor": {"type": "string"},
@@ -177,13 +179,28 @@ class StructuredExtractionService:
     def __init__(self) -> None:
         self._api_key = os.getenv("OPENAI_API_KEY")
         self._model = os.getenv("OPENAI_MODEL", "gpt-5")
+        self._prompt_safety = EnterOSPromptInjectionAdapter()
 
     def extract(self, case_name: str, combined_text: str) -> tuple[dict[str, Any], list[str]]:
         notes: list[str] = []
-        heuristic = heuristic_extract(case_name, combined_text)
 
         if not combined_text.strip():
+            heuristic = heuristic_extract(case_name, combined_text)
             notes.append("Nenhum texto legivel foi encontrado nos arquivos enviados.")
+            return heuristic, notes
+
+        guarded_input = self._prompt_safety.guard_extraction_text(
+            case_name=case_name,
+            combined_text=combined_text,
+        )
+        notes.extend(guarded_input.notes)
+        heuristic_source_text = guarded_input.local_safe_text or combined_text
+        heuristic = heuristic_extract(case_name, heuristic_source_text)
+        if guarded_input.decision != SanitizationDecision.ALLOW:
+            notes.append(
+                "O sanitizer bloqueou o envio automatico do texto documental ao modelo. "
+                "A extracao estruturada seguiu com fallback heuristico local."
+            )
             return heuristic, notes
 
         if not self._api_key or OpenAI is None:
@@ -215,7 +232,7 @@ class StructuredExtractionService:
                                 "text": (
                                     "Analise o processo abaixo e preencha o schema.\n\n"
                                     f"Nome interno do processo: {case_name}\n\n"
-                                    f"Texto consolidado:\n{combined_text[:120000]}"
+                                    f"Texto consolidado:\n{guarded_input.text}"
                                 ),
                             }
                         ],
@@ -231,6 +248,7 @@ class StructuredExtractionService:
                 },
             )
             payload = json.loads(response.output_text)
+            validate_payload_against_schema(payload, EXTRACTION_SCHEMA)
             payload["fonte_extracao"] = f"openai:{self._model}"
             return payload, notes
         except Exception as exc:  # pragma: no cover - depende de API externa
@@ -258,16 +276,20 @@ class StructuredExtractionService:
 
         if not documents:
             return fallback, notes
+        guarded_input = self._prompt_safety.guard_document_classification_batch(documents)
+        notes.extend(guarded_input.notes)
+        if guarded_input.decision != SanitizationDecision.ALLOW:
+            notes.append(
+                "O sanitizer bloqueou o envio automatico dos documentos ao modelo. "
+                "A classificacao estruturada seguiu com fallback local."
+            )
+            return fallback, notes
         if not self._api_key or OpenAI is None:
             notes.append(
                 "OPENAI_API_KEY ausente ou SDK indisponivel. Classificacao local aplicada aos documentos."
             )
             return fallback, notes
 
-        document_text = "\n\n".join(
-            f"DOCUMENTO {index}: {filename}\n{ text[:30000]}"
-            for index, (filename, text) in enumerate(documents)
-        )
         prompt = (
             "Classifique cada documento pelo conteudo, nao apenas pelo nome do arquivo. "
             "Use exatamente um tipo: contrato, extrato, comprovante_credito, dossie, "
@@ -281,7 +303,7 @@ class StructuredExtractionService:
                 model=self._model,
                 input=[
                     {"role": "system", "content": prompt},
-                    {"role": "user", "content": document_text[:120000]},
+                    {"role": "user", "content": guarded_input.text},
                 ],
                 text={
                     "format": {
@@ -292,7 +314,21 @@ class StructuredExtractionService:
                     }
                 },
             )
-            result = json.loads(response.output_text).get("documents", [])
+            payload = json.loads(response.output_text)
+            validate_payload_against_schema(payload, DOCUMENT_CLASSIFICATION_SCHEMA)
+            result = payload.get("documents", [])
+            seen_indexes: set[int] = set()
+            for item in result:
+                document_index = int(item["document_index"])
+                if document_index < 0 or document_index >= len(documents):
+                    raise ValueError(
+                        f"Indice de documento fora do intervalo esperado: {document_index}."
+                    )
+                if document_index in seen_indexes:
+                    raise ValueError(
+                        f"Indice de documento duplicado na resposta estruturada: {document_index}."
+                    )
+                seen_indexes.add(document_index)
             by_index = {item.get("document_index"): item for item in result}
             classified = []
             for index, fallback_item in enumerate(fallback):

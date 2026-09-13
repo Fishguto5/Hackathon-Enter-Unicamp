@@ -26,7 +26,6 @@ export const extractedFieldLabels: Record<string, string> = {
   numero_processo: 'Numero do processo',
   genero: 'Genero',
   resumo_analitico: 'Resumo analitico',
-  fonte_extracao: 'Fonte da extracao',
 }
 
 export const pipelineStages = [

@@ -1,9 +1,5 @@
 import { FormEvent } from 'react'
-import {
-  loginHighlights,
-  type LoginOption,
-  type LoginOptionId,
-} from '../data/dashboard'
+import { type LoginOption, type LoginOptionId } from '../data/dashboard'
 
 type LoginViewProps = {
   loginOptions: readonly LoginOption[]
@@ -18,9 +14,6 @@ export function LoginView({
   onRoleSelect,
   onSubmit,
 }: LoginViewProps) {
-  const activeRole =
-    loginOptions.find((option) => option.id === selectedRole) ?? loginOptions[0]
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     onSubmit()
@@ -38,15 +31,6 @@ export function LoginView({
             Enterprise AI para operacoes juridicas em escala com decisao assistida e
             operacao centralizada.
           </p>
-
-          <div className="brand-panel__highlights">
-            {loginHighlights.map((highlight) => (
-              <article key={highlight.title} className="highlight-card">
-                <strong>{highlight.title}</strong>
-                <p>{highlight.description}</p>
-              </article>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -55,7 +39,7 @@ export function LoginView({
           <div className="login-card__header">
             <span className="login-card__eyebrow">Enter OS</span>
             <h1>Entrar na plataforma</h1>
-            <p>Escolha o perfil de acesso e use qualquer credencial para entrar no fluxo correspondente.</p>
+            <p>Escolha o perfil de acesso e use suas credenciais para entrar na plataforma.</p>
           </div>
 
           <div className="role-selector" aria-label="Tipo de login">
@@ -75,11 +59,6 @@ export function LoginView({
                 </button>
               )
             })}
-          </div>
-
-          <div className="role-summary">
-            <strong>{activeRole.label}</strong>
-            <p>{activeRole.description}</p>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>

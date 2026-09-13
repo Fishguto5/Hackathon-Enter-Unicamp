@@ -23,6 +23,7 @@ try:
     from .services.export_service import build_json_export, build_xlsx_export
     from .services.extraction_service import StructuredExtractionService
     from .services.preprocessing_service import build_feature_vector
+    from .services.intelligence_service import build_case_intelligence
 except ImportError:  # pragma: no cover - permite executar como script
     from src.backend.models import DocumentRecord, LawyerConfirmationRecord
     from src.backend.repository import InMemoryProcessRepository
@@ -31,6 +32,7 @@ except ImportError:  # pragma: no cover - permite executar como script
     from src.backend.services.export_service import build_json_export, build_xlsx_export
     from src.backend.services.extraction_service import StructuredExtractionService
     from src.backend.services.preprocessing_service import build_feature_vector
+    from src.backend.services.intelligence_service import build_case_intelligence
 
 
 app = Flask(__name__)
@@ -358,6 +360,7 @@ def upload_documents(process_id: str):
     process.model_prediction = None
     process.lawyer_confirmation = None
     process.preprocessing_summary = None
+    process.case_intelligence = None
     process.recommendation_summary = None
     process.decision_reasons = []
     process.final_response = None
@@ -406,6 +409,11 @@ def analyze_process(process_id: str):
     process.extracted_data = extracted_data
     process.feature_vector = feature_vector
     process.model_prediction = model_prediction
+    process.case_intelligence = build_case_intelligence(
+        extracted_data,
+        process.subsidies,
+        model_prediction,
+    )
     process.lawyer_confirmation = None
     process.preprocessing_summary = preprocessing_summary
     process.recommendation_summary = build_recommendation_summary(
