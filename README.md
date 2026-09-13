@@ -45,9 +45,9 @@ O desafio é triplo:
 
 Construir uma solução que:
 
-- **Defina uma política de acordos** para o Banco UFMG em casos de não reconhecimento de contratação de empréstimo.
-- **Garanta a implementação** dessa política pelo advogado que está analisando cada caso.
-- **Monitore os resultados** para avaliar se a política de acordos está sendo efetiva.
+- **Defina uma política de acordos** para o Banco UFMG em casos de não reconhecimento de contratação de empréstimo
+- **Garanta a implementação** dessa política pelo advogado que está analisando cada caso
+- **Monitore os resultados** para avaliar se a política de acordos está sendo efetiva
 
 ---
 
