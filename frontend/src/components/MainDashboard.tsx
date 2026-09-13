@@ -20,6 +20,10 @@ import {
   uploadProcessDocuments,
 } from '../lib/api'
 
+type LawyerConfirmationChoice = '' | 'seguir_algoritmo' | 'seguir_outra_estrategia'
+type StrategyOption = 'defesa' | 'acordo'
+type FinalAcceptanceStatus = '' | 'aceito' | 'nao_aceito'
+
 type MainDashboardProps = {
   activeSection: DashboardSection['id']
   onLogout: () => void
@@ -408,6 +412,11 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
   const [processName, setProcessName] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [finalResponseDraft, setFinalResponseDraft] = useState('')
+  const [lastAutoFinalResponse, setLastAutoFinalResponse] = useState('')
+  const [confirmationChoice, setConfirmationChoice] = useState<LawyerConfirmationChoice>('')
+  const [alternativeStrategy, setAlternativeStrategy] = useState<StrategyOption>('defesa')
+  const [finalAcceptanceStatus, setFinalAcceptanceStatus] = useState<FinalAcceptanceStatus>('')
+  const [proposedAgreementValue, setProposedAgreementValue] = useState('')
   const [isBusy, setIsBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -421,6 +430,7 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       const items = await listProcesses()
       setProcesses(items)
       setSelectedProcessId((current) => current ?? items[0]?.id ?? null)
+      setError(null)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Falha ao carregar processos.')
     }
@@ -430,10 +440,103 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
     processes.find((process) => process.id === selectedProcessId) ?? processes[0] ?? null
 
   useEffect(() => {
-    setFinalResponseDraft(
-      selectedProcess?.final_response ?? selectedProcess?.recommendation_summary ?? '',
+    if (!selectedProcess) {
+      setFinalResponseDraft('')
+      setLastAutoFinalResponse('')
+      setConfirmationChoice('')
+      setAlternativeStrategy('defesa')
+      setFinalAcceptanceStatus('')
+      setProposedAgreementValue('')
+      return
+    }
+
+    const nextConfirmationChoice =
+      (selectedProcess.lawyer_confirmation?.choice as LawyerConfirmationChoice | undefined) ?? ''
+    const nextAlternativeStrategy =
+      (selectedProcess.lawyer_confirmation?.final_strategy as StrategyOption | undefined) ??
+      (selectedProcess.model_prediction?.strategy === 'acordo' ? 'acordo' : 'defesa')
+    const nextFinalAcceptanceStatus =
+      (selectedProcess.lawyer_confirmation?.final_acceptance_status as FinalAcceptanceStatus | undefined) ??
+      ''
+    const nextProposedAgreementValue =
+      selectedProcess.lawyer_confirmation?.proposed_agreement_amount !== null &&
+      selectedProcess.lawyer_confirmation?.proposed_agreement_amount !== undefined
+        ? String(selectedProcess.lawyer_confirmation.proposed_agreement_amount)
+        : selectedProcess.model_prediction?.agreement_amount_suggested !== null &&
+            selectedProcess.model_prediction?.agreement_amount_suggested !== undefined
+          ? String(selectedProcess.model_prediction.agreement_amount_suggested)
+          : ''
+    const nextCurrentFinalStrategy = getCurrentFinalStrategy(
+      selectedProcess,
+      nextConfirmationChoice,
+      nextAlternativeStrategy,
     )
+    const nextLiveAgreementAmount =
+      nextCurrentFinalStrategy === 'acordo' && nextProposedAgreementValue.trim()
+        ? parseAmountInput(nextProposedAgreementValue)
+        : null
+    const nextDisplayedAgreementAmount = getDisplayedAgreementAmount(
+      selectedProcess,
+      nextLiveAgreementAmount,
+    )
+    const nextAutoFinalResponse = buildSuggestedFinalResponse(
+      selectedProcess,
+      nextCurrentFinalStrategy,
+      nextDisplayedAgreementAmount,
+      nextConfirmationChoice,
+      nextFinalAcceptanceStatus,
+    )
+
+    setFinalResponseDraft(selectedProcess.final_response ?? nextAutoFinalResponse)
+    setLastAutoFinalResponse(nextAutoFinalResponse)
+    setConfirmationChoice(nextConfirmationChoice)
+    setAlternativeStrategy(nextAlternativeStrategy)
+    setFinalAcceptanceStatus(nextFinalAcceptanceStatus)
+    setProposedAgreementValue(nextProposedAgreementValue)
   }, [selectedProcess])
+
+  useEffect(() => {
+    if (!selectedProcess) {
+      return
+    }
+
+    const currentFinalStrategy = getCurrentFinalStrategy(
+      selectedProcess,
+      confirmationChoice,
+      alternativeStrategy,
+    )
+    const liveAgreementAmount =
+      currentFinalStrategy === 'acordo' && proposedAgreementValue.trim()
+        ? parseAmountInput(proposedAgreementValue)
+        : null
+    const displayedAgreementAmount = getDisplayedAgreementAmount(
+      selectedProcess,
+      liveAgreementAmount,
+    )
+    const nextAutoFinalResponse = buildSuggestedFinalResponse(
+      selectedProcess,
+      currentFinalStrategy,
+      displayedAgreementAmount,
+      confirmationChoice,
+      finalAcceptanceStatus,
+    )
+
+    if (nextAutoFinalResponse === lastAutoFinalResponse) {
+      return
+    }
+
+    setFinalResponseDraft((current) =>
+      current === lastAutoFinalResponse ? nextAutoFinalResponse : current,
+    )
+    setLastAutoFinalResponse(nextAutoFinalResponse)
+  }, [
+    selectedProcess,
+    confirmationChoice,
+    alternativeStrategy,
+    finalAcceptanceStatus,
+    proposedAgreementValue,
+    lastAutoFinalResponse,
+  ])
 
   function replaceProcess(updated: LegalProcess) {
     setProcesses((current) => {
@@ -518,15 +621,55 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
       setError('Selecione um processo para registrar a resposta definitiva.')
       return
     }
+    if (!confirmationChoice) {
+      setError('Confirme se o advogado pretende seguir a recomendacao do algoritmo ou outra estrategia.')
+      return
+    }
+    if (confirmationChoice === 'seguir_algoritmo' && !selectedProcess.model_prediction?.strategy) {
+      setError('A recomendacao estruturada do algoritmo ainda nao esta disponivel para confirmacao.')
+      return
+    }
+    if (!finalAcceptanceStatus) {
+      setError('Informe se a decisao final do advogado foi aceita ou nao aceita.')
+      return
+    }
+    const currentFinalStrategy = getCurrentFinalStrategy(
+      selectedProcess,
+      confirmationChoice,
+      alternativeStrategy,
+    )
+    if (currentFinalStrategy === 'acordo' && !proposedAgreementValue.trim()) {
+      setError('Informe o valor de acordo que deve seguir para a proposta final.')
+      return
+    }
+    const parsedAgreementValue =
+      currentFinalStrategy === 'acordo' ? Number(proposedAgreementValue.replace(',', '.')) : undefined
+    if (
+      currentFinalStrategy === 'acordo' &&
+      (parsedAgreementValue === undefined || Number.isNaN(parsedAgreementValue) || parsedAgreementValue < 0)
+    ) {
+      setError('Informe um valor de acordo valido.')
+      return
+    }
 
     setIsBusy(true)
     setError(null)
     setFeedback(null)
 
     try {
-      const updated = await finalizeProcess(selectedProcess.id, finalResponseDraft.trim())
+      const updated = await finalizeProcess(selectedProcess.id, {
+        final_response: finalResponseDraft.trim(),
+        confirmation_choice: confirmationChoice,
+        final_acceptance_status: finalAcceptanceStatus,
+        final_strategy:
+          confirmationChoice === 'seguir_outra_estrategia' ? alternativeStrategy : undefined,
+        proposed_agreement_amount:
+          currentFinalStrategy === 'acordo' && parsedAgreementValue !== undefined
+            ? parsedAgreementValue
+            : undefined,
+      })
       replaceProcess(updated)
-      setFeedback('Resposta definitiva registrada no processo.')
+      setFeedback('Confirmacao do advogado e resposta definitiva registradas no processo.')
     } catch (finalizeError) {
       setError(
         finalizeError instanceof Error
@@ -680,13 +823,21 @@ function LawyerPipelineDashboard({ onLogout }: Pick<MainDashboardProps, 'onLogou
           />
         ) : (
           <LawyerProcessesScreen
+            alternativeStrategy={alternativeStrategy}
+            confirmationChoice={confirmationChoice}
             finalResponseDraft={finalResponseDraft}
+            finalAcceptanceStatus={finalAcceptanceStatus}
             isBusy={isBusy}
             onFinalize={handleFinalizeProcess}
+            onAlternativeStrategyChange={setAlternativeStrategy}
+            onFinalAcceptanceStatusChange={setFinalAcceptanceStatus}
+            onConfirmationChoiceChange={setConfirmationChoice}
             onFinalResponseDraftChange={setFinalResponseDraft}
+            onProposedAgreementValueChange={setProposedAgreementValue}
             onRefresh={loadProcesses}
             onSelectProcess={setSelectedProcessId}
             processes={processes}
+            proposedAgreementValue={proposedAgreementValue}
             selectedProcess={selectedProcess}
           />
         )}
@@ -1007,22 +1158,38 @@ function LawyerOverviewScreen({
 }
 
 function LawyerProcessesScreen({
+  alternativeStrategy,
+  confirmationChoice,
   finalResponseDraft,
+  finalAcceptanceStatus,
   isBusy,
   onFinalize,
+  onAlternativeStrategyChange,
+  onFinalAcceptanceStatusChange,
+  onConfirmationChoiceChange,
   onFinalResponseDraftChange,
+  onProposedAgreementValueChange,
   onRefresh,
   onSelectProcess,
   processes,
+  proposedAgreementValue,
   selectedProcess,
 }: {
+  alternativeStrategy: StrategyOption
+  confirmationChoice: LawyerConfirmationChoice
   finalResponseDraft: string
+  finalAcceptanceStatus: FinalAcceptanceStatus
   isBusy: boolean
   onFinalize: () => Promise<void>
+  onAlternativeStrategyChange: (value: StrategyOption) => void
+  onFinalAcceptanceStatusChange: (value: FinalAcceptanceStatus) => void
+  onConfirmationChoiceChange: (value: LawyerConfirmationChoice) => void
   onFinalResponseDraftChange: (value: string) => void
+  onProposedAgreementValueChange: (value: string) => void
   onRefresh: () => Promise<void>
   onSelectProcess: (processId: string) => void
   processes: LegalProcess[]
+  proposedAgreementValue: string
   selectedProcess: LegalProcess | null
 }) {
   const recommendationReadyCount = processes.filter(
@@ -1035,6 +1202,29 @@ function LawyerProcessesScreen({
   const createdSeries = buildRecentCreationsSeries(processes)
   const reviewSeries = buildAnalysisStateSeries(processes)
   const finalSeries = buildCompletionSeries(processes)
+  const currentFinalStrategy = selectedProcess
+    ? getCurrentFinalStrategy(selectedProcess, confirmationChoice, alternativeStrategy)
+    : null
+  const isAgreementFlow = currentFinalStrategy === 'acordo'
+  const liveAgreementAmount =
+    isAgreementFlow && proposedAgreementValue.trim()
+      ? parseAmountInput(proposedAgreementValue)
+      : null
+  const displayedAgreementAmount = selectedProcess
+    ? getDisplayedAgreementAmount(selectedProcess, liveAgreementAmount)
+    : null
+  const displayedRecommendationText = selectedProcess
+    ? getDisplayedRecommendationText(
+        selectedProcess,
+        currentFinalStrategy,
+        displayedAgreementAmount,
+        confirmationChoice,
+        finalAcceptanceStatus,
+      )
+    : null
+  const spotlightStrategy = selectedProcess
+    ? getDisplayedStrategy(selectedProcess, currentFinalStrategy)
+    : null
 
   return (
     <>
@@ -1156,12 +1346,197 @@ function LawyerProcessesScreen({
                 <p>Proxima etapa: {selectedSummary.nextStep}</p>
               </div>
 
-              <div className="lawyer-summary-block">
-                <span>Recomendacao do algoritmo</span>
+              {selectedProcess.model_prediction ? (
+                <section className="decision-spotlight">
+                  <div className="decision-spotlight__hero">
+                    <span className="decision-spotlight__eyebrow">Recomendacao principal</span>
+                    <strong className={`decision-spotlight__title is-${spotlightStrategy ?? selectedProcess.model_prediction.strategy}`}>
+                      {(spotlightStrategy ?? selectedProcess.model_prediction.strategy).toUpperCase()}
+                    </strong>
+                    <p>{displayedRecommendationText ?? 'A analise ainda nao foi iniciada para este processo.'}</p>
+                  </div>
+
+                  <div className="decision-spotlight__metrics">
+                    <article className="decision-metric-card">
+                      <span>Chance de exito</span>
+                      <strong>{formatPercentage(selectedProcess.model_prediction.probability_success)}</strong>
+                      <small>Threshold da politica: {formatPercentage(selectedProcess.model_prediction.threshold_success)}</small>
+                    </article>
+                    <article className="decision-metric-card">
+                      <span>{selectedProcess.lawyer_confirmation ? 'Valor final de acordo' : 'Valor sugerido de acordo'}</span>
+                      <strong>
+                        {displayedAgreementAmount === null
+                          ? 'Nao se aplica'
+                          : formatCurrency(displayedAgreementAmount)}
+                      </strong>
+                      <small>
+                        {displayedAgreementAmount === null
+                          ? 'Recomendacao atual orienta defesa.'
+                          : selectedProcess.lawyer_confirmation
+                            ? 'Valor que sera considerado como referencia final do acordo.'
+                            : 'O advogado pode editar esse valor na confirmacao.'}
+                      </small>
+                    </article>
+                    <article className="decision-metric-card">
+                      <span>Estrategia final em edicao</span>
+                      <strong>{currentFinalStrategy ? currentFinalStrategy.toUpperCase() : 'PENDENTE'}</strong>
+                      <small>
+                        {selectedProcess.lawyer_confirmation
+                          ? `Ultima confirmacao: ${buildConfirmationLabel(selectedProcess.lawyer_confirmation.choice)}`
+                          : 'Aguardando escolha do advogado.'}
+                      </small>
+                    </article>
+                  </div>
+                </section>
+              ) : (
+                <div className="lawyer-summary-block">
+                  <span>Recomendacao do algoritmo</span>
+                  <strong>A analise ainda nao foi iniciada para este processo.</strong>
+                  <p>Assim que o pipeline terminar, defesa ou acordo aparecerao em destaque aqui.</p>
+                </div>
+              )}
+
+              <div className="lawyer-summary-block lawyer-summary-block--form">
+                <span>Confirmacao do advogado</span>
                 <strong>
-                  {selectedProcess.recommendation_summary ??
-                    'A analise ainda nao foi iniciada para este processo.'}
+                  {selectedProcess.lawyer_confirmation
+                    ? buildConfirmationLabel(selectedProcess.lawyer_confirmation.choice)
+                    : 'Escolha obrigatoria antes de registrar a resposta definitiva.'}
                 </strong>
+                {selectedProcess.model_prediction ? (
+                  <div className="decision-form">
+                    <div className="decision-choice-grid">
+                      <button
+                        type="button"
+                        className={`decision-choice-card${confirmationChoice === 'seguir_algoritmo' ? ' is-active' : ''}`}
+                        onClick={() => onConfirmationChoiceChange('seguir_algoritmo')}
+                        disabled={isBusy || !selectedProcess.feature_vector}
+                      >
+                        <span className="decision-choice-card__eyebrow">Seguir politica</span>
+                        <strong>
+                          Aplicar {selectedProcess.model_prediction.strategy.toUpperCase()}
+                        </strong>
+                        <p>Usa a recomendacao calculada pelo algoritmo e mantem a aderencia a politica.</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`decision-choice-card${confirmationChoice === 'seguir_outra_estrategia' ? ' is-active' : ''}`}
+                        onClick={() => onConfirmationChoiceChange('seguir_outra_estrategia')}
+                        disabled={isBusy || !selectedProcess.feature_vector}
+                      >
+                        <span className="decision-choice-card__eyebrow">Ajuste humano</span>
+                        <strong>Escolher outra estrategia</strong>
+                        <p>Permite divergir do algoritmo e registrar defesa ou acordo por criterio juridico.</p>
+                      </button>
+                    </div>
+
+                    {confirmationChoice === 'seguir_outra_estrategia' ? (
+                      <div className="strategy-pill-group" role="radiogroup" aria-label="Estrategia final">
+                        {(['defesa', 'acordo'] as StrategyOption[]).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`strategy-pill${alternativeStrategy === option ? ' is-active' : ''}`}
+                            onClick={() => onAlternativeStrategyChange(option)}
+                            disabled={isBusy || !selectedProcess.feature_vector}
+                          >
+                            {option.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {isAgreementFlow ? (
+                      <div className="agreement-editor">
+                        <div className="agreement-editor__header">
+                          <div>
+                            <span className="detail-card__eyebrow">Valor do acordo</span>
+                            <h3>Proposta financeira do advogado</h3>
+                          </div>
+                          <span className="pipeline-card__tag">
+                            Sugerido: {selectedProcess.model_prediction.agreement_amount_suggested === null
+                              ? 'Nao informado'
+                              : formatCurrency(selectedProcess.model_prediction.agreement_amount_suggested)}
+                          </span>
+                        </div>
+
+                        <div className="agreement-editor__grid">
+                          <article className="agreement-editor__card">
+                            <span>Valor a registrar</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={proposedAgreementValue}
+                              onChange={(event) => onProposedAgreementValueChange(event.target.value)}
+                              placeholder="Ex.: 6500.00"
+                              disabled={isBusy || !selectedProcess.feature_vector}
+                            />
+                            <small>O advogado pode manter a sugestao do algoritmo ou propor um novo valor.</small>
+                          </article>
+
+                          <article className="agreement-editor__card">
+                            <span>Leitura rapida</span>
+                            <strong>
+                              {proposedAgreementValue.trim()
+                                ? formatCurrency(Number(proposedAgreementValue.replace(',', '.')) || 0)
+                                : 'Preencha o valor'}
+                            </strong>
+                            <small>
+                              {selectedProcess.lawyer_confirmation?.proposed_agreement_amount !== null &&
+                              selectedProcess.lawyer_confirmation?.proposed_agreement_amount !== undefined
+                                ? `Ultimo valor salvo: ${formatCurrency(selectedProcess.lawyer_confirmation.proposed_agreement_amount)}`
+                                : 'Nenhum valor final salvo ainda.'}
+                            </small>
+                          </article>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="acceptance-panel">
+                      <div className="acceptance-panel__header">
+                        <span className="detail-card__eyebrow">Etapa final</span>
+                        <h3>Aceitacao da decisao</h3>
+                      </div>
+                      <div className="decision-choice-grid">
+                        <button
+                          type="button"
+                          className={`decision-choice-card${finalAcceptanceStatus === 'aceito' ? ' is-active' : ''}`}
+                          onClick={() => onFinalAcceptanceStatusChange('aceito')}
+                          disabled={isBusy || !selectedProcess.feature_vector}
+                        >
+                          <span className="decision-choice-card__eyebrow">Conclusao</span>
+                          <strong>Aceitar decisao final</strong>
+                          <p>Registra que o advogado concluiu e aprovou a estrategia final do caso.</p>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`decision-choice-card${finalAcceptanceStatus === 'nao_aceito' ? ' is-active' : ''}`}
+                          onClick={() => onFinalAcceptanceStatusChange('nao_aceito')}
+                          disabled={isBusy || !selectedProcess.feature_vector}
+                        >
+                          <span className="decision-choice-card__eyebrow">Rejeicao</span>
+                          <strong>Nao aceitar decisao final</strong>
+                          <p>Registra que a decisao foi negada e precisa de nova avaliacao ou tratativa.</p>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p>A confirmacao sera habilitada quando a recomendacao estruturada estiver pronta.</p>
+                )}
+                {selectedProcess.lawyer_confirmation ? (
+                  <p>
+                    Estrategia final registrada: {selectedProcess.lawyer_confirmation.final_strategy.toUpperCase()} em{' '}
+                    {formatDateTime(selectedProcess.lawyer_confirmation.confirmed_at)}
+                    {` com status ${buildAcceptanceLabel(selectedProcess.lawyer_confirmation.final_acceptance_status)} `}
+                    {selectedProcess.lawyer_confirmation.proposed_agreement_amount !== null
+                      ? ` com valor de ${formatCurrency(selectedProcess.lawyer_confirmation.proposed_agreement_amount)}.`
+                      : '.'}
+                  </p>
+                ) : null}
               </div>
 
               <div className="lawyer-summary-block">
@@ -1256,6 +1631,149 @@ function getAnalysisStateLabel(state: string) {
   return analysisStateLabels[state] ?? state
 }
 
+function buildConfirmationLabel(choice: string) {
+  if (choice === 'seguir_algoritmo') {
+    return 'Advogado confirmou aderencia ao algoritmo'
+  }
+  if (choice === 'seguir_outra_estrategia') {
+    return 'Advogado optou por outra estrategia'
+  }
+  return 'Confirmacao pendente'
+}
+
+function buildAcceptanceLabel(value: string) {
+  if (value === 'aceito') {
+    return 'aceito'
+  }
+  if (value === 'nao_aceito') {
+    return 'nao aceito'
+  }
+  return 'pendente'
+}
+
+function getEffectiveAgreementAmount(process: LegalProcess) {
+  if (
+    process.lawyer_confirmation?.proposed_agreement_amount !== null &&
+    process.lawyer_confirmation?.proposed_agreement_amount !== undefined
+  ) {
+    return process.lawyer_confirmation.proposed_agreement_amount
+  }
+
+  if (
+    process.model_prediction?.agreement_amount_suggested !== null &&
+    process.model_prediction?.agreement_amount_suggested !== undefined
+  ) {
+    return process.model_prediction.agreement_amount_suggested
+  }
+
+  return null
+}
+
+function getDisplayedAgreementAmount(
+  process: LegalProcess,
+  liveAgreementAmount: number | null,
+) {
+  if (liveAgreementAmount !== null) {
+    return liveAgreementAmount
+  }
+
+  return getEffectiveAgreementAmount(process)
+}
+
+function getDisplayedRecommendationText(
+  process: LegalProcess,
+  currentFinalStrategy: StrategyOption | null,
+  displayedAgreementAmount: number | null,
+  confirmationChoice: LawyerConfirmationChoice,
+  finalAcceptanceStatus: FinalAcceptanceStatus,
+) {
+  return (
+    buildSuggestedFinalResponse(
+      process,
+      currentFinalStrategy,
+      displayedAgreementAmount,
+      confirmationChoice,
+      finalAcceptanceStatus,
+    ) || null
+  )
+}
+
+function parseAmountInput(value: string) {
+  const parsed = Number(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function buildSuggestedFinalResponse(
+  process: LegalProcess,
+  currentFinalStrategy: StrategyOption | null,
+  displayedAgreementAmount: number | null,
+  confirmationChoice: LawyerConfirmationChoice,
+  finalAcceptanceStatus: FinalAcceptanceStatus,
+) {
+  if (currentFinalStrategy && (confirmationChoice || finalAcceptanceStatus)) {
+    const adherenceLabel =
+      confirmationChoice === 'seguir_algoritmo'
+        ? 'seguindo a recomendacao do algoritmo'
+        : confirmationChoice === 'seguir_outra_estrategia'
+          ? 'divergindo da recomendacao do algoritmo'
+          : 'em revisao pelo advogado'
+
+    const acceptanceLabel =
+      finalAcceptanceStatus === 'aceito'
+        ? 'com decisao aceita'
+        : finalAcceptanceStatus === 'nao_aceito'
+          ? 'com decisao nao aceita'
+          : 'aguardando aceite final'
+
+    if (currentFinalStrategy === 'acordo' && displayedAgreementAmount !== null) {
+      return `Decisao final em edicao: acordo, ${adherenceLabel}, ${acceptanceLabel}. Valor considerado: ${formatCurrency(displayedAgreementAmount)}.`
+    }
+
+    return `Decisao final em edicao: ${currentFinalStrategy}, ${adherenceLabel}, ${acceptanceLabel}.`
+  }
+
+  return process.recommendation_summary ?? process.final_response ?? ''
+}
+
+function getDisplayedStrategy(
+  process: LegalProcess,
+  currentFinalStrategy: StrategyOption | null,
+) {
+  if (process.lawyer_confirmation?.final_strategy) {
+    return process.lawyer_confirmation.final_strategy as StrategyOption
+  }
+
+  if (currentFinalStrategy) {
+    return currentFinalStrategy
+  }
+
+  if (process.model_prediction?.strategy === 'acordo' || process.model_prediction?.strategy === 'defesa') {
+    return process.model_prediction.strategy as StrategyOption
+  }
+
+  return null
+}
+
+function getCurrentFinalStrategy(
+  process: LegalProcess,
+  confirmationChoice: LawyerConfirmationChoice,
+  alternativeStrategy: StrategyOption,
+) {
+  if (confirmationChoice === 'seguir_algoritmo') {
+    return process.model_prediction?.strategy === 'acordo' ? 'acordo' : process.model_prediction?.strategy === 'defesa' ? 'defesa' : null
+  }
+
+  if (confirmationChoice === 'seguir_outra_estrategia') {
+    return alternativeStrategy
+  }
+
+  return process.lawyer_confirmation?.final_strategy === 'acordo'
+    ? 'acordo'
+    : process.lawyer_confirmation?.final_strategy === 'defesa'
+      ? 'defesa'
+      : null
+}
+
 function getProcessStatusLabel(process: LegalProcess) {
   const pipelineLabel = statusLabels[process.status] ?? process.status
   const analysisLabel = getAnalysisStateLabel(process.analysis_state)
@@ -1290,6 +1808,24 @@ function buildLawyerProcessFacts(process: LegalProcess) {
     {
       label: 'Documentos enviados',
       value: String(process.document_count),
+    },
+    {
+      label: 'Confirmacao do advogado',
+      value: process.lawyer_confirmation
+        ? process.lawyer_confirmation.final_strategy.toUpperCase()
+        : 'Pendente',
+    },
+    {
+      label: 'Aceitacao final',
+      value: process.lawyer_confirmation
+        ? buildAcceptanceLabel(process.lawyer_confirmation.final_acceptance_status)
+        : 'Pendente',
+    },
+    {
+      label: 'Valor final de acordo',
+      value: getEffectiveAgreementAmount(process) !== null
+        ? formatCurrency(getEffectiveAgreementAmount(process) ?? 0)
+        : 'Nao se aplica',
     },
   ]
 }
@@ -1612,6 +2148,23 @@ function formatValue(value: string | number) {
   }
 
   return value
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function formatPercentage(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value)
 }
 
 function MiniChart({

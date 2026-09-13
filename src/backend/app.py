@@ -3,32 +3,68 @@ from __future__ import annotations
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
+import sys
 
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT / "src" / ".env")
 
 from flask import Flask, jsonify, request, send_file
 
-from .models import DocumentRecord
-from .repository import InMemoryProcessRepository
-from .services.document_service import classify_document, extract_text_from_bytes
-from .services.export_service import build_json_export, build_xlsx_export
-from .services.extraction_service import StructuredExtractionService
-from .services.preprocessing_service import build_feature_vector
+try:
+    from .models import DocumentRecord, LawyerConfirmationRecord
+    from .repository import InMemoryProcessRepository
+    from .services.decision_service import DecisionModelService
+    from .services.document_service import classify_document, extract_text_from_bytes
+    from .services.export_service import build_json_export, build_xlsx_export
+    from .services.extraction_service import StructuredExtractionService
+    from .services.preprocessing_service import build_feature_vector
+except ImportError:  # pragma: no cover - permite executar como script
+    from src.backend.models import DocumentRecord, LawyerConfirmationRecord
+    from src.backend.repository import InMemoryProcessRepository
+    from src.backend.services.decision_service import DecisionModelService
+    from src.backend.services.document_service import classify_document, extract_text_from_bytes
+    from src.backend.services.export_service import build_json_export, build_xlsx_export
+    from src.backend.services.extraction_service import StructuredExtractionService
+    from src.backend.services.preprocessing_service import build_feature_vector
 
 
 app = Flask(__name__)
 repository = InMemoryProcessRepository()
 extraction_service = StructuredExtractionService()
+decision_service = DecisionModelService()
 
 
 def build_recommendation_summary(
+    model_prediction: dict[str, object] | None,
     extracted_data: dict[str, object],
     subsidies: dict[str, int],
 ) -> str:
+    if model_prediction:
+        strategy = str(model_prediction.get("strategy") or "").strip().lower()
+        success_probability = float(model_prediction.get("probability_success") or 0.0) * 100
+        threshold_success = float(model_prediction.get("threshold_success") or 0.0) * 100
+        if strategy == "defesa":
+            return (
+                "Recomendacao gerada pelo modelo: defesa, porque a chance estimada de exito "
+                f"do banco foi de {success_probability:.1f}%, acima do threshold de {threshold_success:.1f}%."
+            )
+
+        agreement_amount = model_prediction.get("agreement_amount_suggested")
+        agreement_fragment = ""
+        if isinstance(agreement_amount, (int, float)):
+            agreement_fragment = f" Valor sugerido para abertura de negociacao: R$ {agreement_amount:,.2f}."
+
+        return (
+            "Recomendacao gerada pelo modelo: acordo, porque a chance estimada de exito "
+            f"do banco foi de {success_probability:.1f}%, abaixo do threshold de {threshold_success:.1f}%."
+            f"{agreement_fragment}"
+        )
+
     macro_result = str(extracted_data.get("resultado_macro") or "").strip().lower()
     micro_result = str(extracted_data.get("resultado_micro") or "").strip()
     active_subsidies = [
@@ -66,6 +102,7 @@ def build_recommendation_summary(
 
 
 def build_decision_reasons(
+    model_prediction: dict[str, object] | None,
     extracted_data: dict[str, object],
     subsidies: dict[str, int],
     document_count: int,
@@ -96,6 +133,22 @@ def build_decision_reasons(
     reasons.append(
         f"Foram analisados {document_count} documentos no pipeline para compor a recomendacao automatica."
     )
+
+    if model_prediction:
+        strategy = str(model_prediction.get("strategy") or "em revisao").upper()
+        success_probability = float(model_prediction.get("probability_success") or 0.0) * 100
+        failure_probability = float(model_prediction.get("probability_failure") or 0.0) * 100
+        threshold_success = float(model_prediction.get("threshold_success") or 0.0) * 100
+        reasons.append(
+            f"O modelo de ML estimou {success_probability:.1f}% de chance de exito e {failure_probability:.1f}% de risco de nao exito, com threshold de {threshold_success:.1f}% para recomendar {strategy}."
+        )
+
+        agreement_amount = model_prediction.get("agreement_amount_suggested")
+        adjusted_score = model_prediction.get("agreement_score_adjusted")
+        if isinstance(agreement_amount, (int, float)) and isinstance(adjusted_score, (int, float)):
+            reasons.append(
+                f"Como o caso caiu em acordo, o score financeiro ajustado ficou em {adjusted_score:.3f}, resultando em valor sugerido de R$ {agreement_amount:,.2f}."
+            )
 
     if isinstance(claim_amount, (int, float)) and claim_amount > 0:
         reasons.append(
@@ -128,6 +181,86 @@ def add_cors_headers(response):
 @app.route("/api/health", methods=["GET"])
 def healthcheck():
     return jsonify({"status": "ok"})
+
+
+def parse_optional_amount(value: object) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return round(parsed, 2)
+
+
+def format_brl(value: float) -> str:
+    formatted = f"{value:,.2f}"
+    return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def build_final_decision_summary(
+    lawyer_confirmation: LawyerConfirmationRecord | None,
+) -> str | None:
+    if not lawyer_confirmation:
+        return None
+
+    adherence_label = (
+        "seguindo a recomendacao do algoritmo"
+        if lawyer_confirmation.choice == "seguir_algoritmo"
+        else "divergindo da recomendacao do algoritmo"
+    )
+    acceptance_label = (
+        "aceita"
+        if lawyer_confirmation.final_acceptance_status == "aceito"
+        else "nao aceita"
+    )
+
+    if lawyer_confirmation.final_strategy == "acordo":
+        if lawyer_confirmation.proposed_agreement_amount is not None:
+            return (
+                "Decisao final do advogado: acordo, "
+                f"{adherence_label}, com decisao {acceptance_label}. "
+                f"Valor final do acordo: R$ {format_brl(lawyer_confirmation.proposed_agreement_amount)}."
+            )
+        return (
+            "Decisao final do advogado: acordo, "
+            f"{adherence_label}, com decisao {acceptance_label}."
+        )
+
+    return (
+        "Decisao final do advogado: defesa, "
+        f"{adherence_label}, com decisao {acceptance_label}."
+    )
+
+
+def build_lawyer_confirmation_reasons(
+    lawyer_confirmation: LawyerConfirmationRecord | None,
+) -> list[str]:
+    if not lawyer_confirmation:
+        return []
+
+    reasons = []
+    if lawyer_confirmation.choice == "seguir_algoritmo":
+        reasons.append(
+            "O advogado confirmou que pretende seguir a estrategia prevista pelo algoritmo."
+        )
+    else:
+        reasons.append(
+            f"O advogado optou por nao seguir a predicao original e registrou a estrategia final como {lawyer_confirmation.final_strategy}."
+        )
+
+    reasons.append(
+        "Na etapa final, a decisao do advogado foi marcada como "
+        f"{'aceita' if lawyer_confirmation.final_acceptance_status == 'aceito' else 'nao aceita'}."
+    )
+
+    if lawyer_confirmation.final_strategy == "acordo" and lawyer_confirmation.proposed_agreement_amount is not None:
+        reasons.append(
+            "O valor final informado pelo advogado para o acordo foi de "
+            f"R$ {format_brl(lawyer_confirmation.proposed_agreement_amount)}."
+        )
+
+    return reasons
 
 
 @app.route("/api/processes", methods=["OPTIONS"])
@@ -197,6 +330,8 @@ def upload_documents(process_id: str):
 
     process.extracted_data = None
     process.feature_vector = None
+    process.model_prediction = None
+    process.lawyer_confirmation = None
     process.preprocessing_summary = None
     process.recommendation_summary = None
     process.decision_reasons = []
@@ -238,15 +373,23 @@ def analyze_process(process_id: str):
         document_count=len(process.documents),
         combined_text=combined_text,
     )
+    model_prediction, decision_notes = decision_service.predict(
+        extracted_data,
+        process.subsidies,
+    )
 
     process.extracted_data = extracted_data
     process.feature_vector = feature_vector
+    process.model_prediction = model_prediction
+    process.lawyer_confirmation = None
     process.preprocessing_summary = preprocessing_summary
     process.recommendation_summary = build_recommendation_summary(
+        model_prediction,
         extracted_data,
         process.subsidies,
     )
     process.decision_reasons = build_decision_reasons(
+        model_prediction,
         extracted_data,
         process.subsidies,
         len(process.documents),
@@ -255,6 +398,7 @@ def analyze_process(process_id: str):
     process.analysis_state = "recomendacao_gerada"
     process.processing_notes.extend(classification_notes)
     process.processing_notes.extend(extraction_notes)
+    process.processing_notes.extend(decision_notes)
     process.touch(status="processado")
     repository.save(process)
     return jsonify(process.to_dict())
@@ -270,15 +414,126 @@ def finalize_process(process_id: str):
 
     payload = request.get_json(silent=True) or {}
     final_response = str(payload.get("final_response") or "").strip()
+    confirmation_choice = str(payload.get("confirmation_choice") or "").strip().lower()
+    final_strategy = str(payload.get("final_strategy") or "").strip().lower()
+    final_acceptance_status = str(payload.get("final_acceptance_status") or "").strip().lower()
+    proposed_agreement_amount = parse_optional_amount(payload.get("proposed_agreement_amount"))
+    algorithm_strategy = None
+    suggested_agreement_amount = None
+    if process.model_prediction:
+        algorithm_strategy = str(process.model_prediction.get("strategy") or "").strip().lower() or None
+        raw_suggested_amount = process.model_prediction.get("agreement_amount_suggested")
+        if isinstance(raw_suggested_amount, (int, float)):
+            suggested_agreement_amount = round(float(raw_suggested_amount), 2)
+
+    valid_choices = {"seguir_algoritmo", "seguir_outra_estrategia"}
+    valid_strategies = {"defesa", "acordo"}
+    valid_acceptance_statuses = {"aceito", "nao_aceito"}
+
+    if confirmation_choice not in valid_choices:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "Confirme se o advogado pretende seguir a recomendacao do algoritmo "
+                        "ou registrar outra estrategia."
+                    )
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if final_acceptance_status not in valid_acceptance_statuses:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "Informe se a decisao final do advogado foi aceita ou nao aceita."
+                    )
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if confirmation_choice == "seguir_algoritmo":
+        if algorithm_strategy not in valid_strategies:
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "A recomendacao do algoritmo ainda nao esta disponivel para "
+                            "ser confirmada."
+                        )
+                    }
+                ),
+                HTTPStatus.BAD_REQUEST,
+            )
+        final_strategy = algorithm_strategy
+    elif final_strategy not in valid_strategies:
+        return (
+            jsonify(
+                {
+                    "error": "Ao divergir do algoritmo, informe se a estrategia final sera defesa ou acordo."
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if proposed_agreement_amount is not None and proposed_agreement_amount < 0:
+        return (
+            jsonify({"error": "O valor proposto para acordo nao pode ser negativo."}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if final_strategy == "acordo":
+        proposed_agreement_amount = proposed_agreement_amount or suggested_agreement_amount
+        if proposed_agreement_amount is None:
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "Informe um valor de acordo para concluir a escolha por acordo."
+                        )
+                    }
+                ),
+                HTTPStatus.BAD_REQUEST,
+            )
+    else:
+        proposed_agreement_amount = None
+
+    process.lawyer_confirmation = LawyerConfirmationRecord(
+        choice=confirmation_choice,
+        algorithm_strategy=algorithm_strategy,
+        final_strategy=final_strategy,
+        final_acceptance_status=final_acceptance_status,
+        proposed_agreement_amount=proposed_agreement_amount,
+        confirmed_at=process.updated_at,
+    )
+    process.recommendation_summary = build_final_decision_summary(process.lawyer_confirmation)
+    process.decision_reasons = build_decision_reasons(
+        process.model_prediction,
+        process.extracted_data or {},
+        process.subsidies,
+        len(process.documents),
+    ) + build_lawyer_confirmation_reasons(process.lawyer_confirmation)
     process.final_response = (
         final_response
-        or process.final_response
         or process.recommendation_summary
+        or process.final_response
         or "Resposta definitiva registrada pelo advogado."
     )
     process.analysis_state = "resposta_definitiva"
-    process.processing_notes.append("Resposta definitiva do advogado registrada na plataforma.")
+    if proposed_agreement_amount is not None:
+        process.processing_notes.append(
+            "Resposta definitiva do advogado registrada na plataforma com aderencia a preditao, aceite final e valor proposto de acordo."
+        )
+    else:
+        process.processing_notes.append(
+            "Resposta definitiva do advogado registrada na plataforma com aderencia a preditao e aceite final."
+        )
     process.touch(status="processado")
+    if process.lawyer_confirmation:
+        process.lawyer_confirmation.confirmed_at = process.updated_at
     repository.save(process)
     return jsonify(process.to_dict())
 
@@ -313,4 +568,6 @@ def export_process(process_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # O reloader do Flask recria o processo e apaga o repositorio em memoria.
+    # Como os processos desta demo ficam apenas em RAM, isso gera 404 com IDs antigos.
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)

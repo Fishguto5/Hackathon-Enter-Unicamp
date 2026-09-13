@@ -37,7 +37,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -1232,10 +1234,12 @@ input {
   color: var(--color-text);
 }
 
-.pipeline-form input {
+.pipeline-form input,
+.pipeline-form select {
   width: 100%;
   padding: 15px 16px;
   border-radius: 14px;
+  border: 1px solid rgba(95, 95, 95, 0.18);
   color: var(--color-text);
   background: #ffffff;
   outline: none;
@@ -1261,7 +1265,8 @@ input {
     background 180ms ease;
 }
 
-.pipeline-form input:focus {
+.pipeline-form input:focus,
+.pipeline-form select:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 4px rgba(255, 174, 53, 0.18);
 }
@@ -1577,6 +1582,222 @@ input {
   background: #fffdfa;
 }
 
+.lawyer-summary-block--form {
+  gap: 16px;
+}
+
+.decision-spotlight {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 174, 53, 0.16), transparent 34%),
+    linear-gradient(180deg, #fffefb 0%, #fff5e7 100%);
+}
+
+.decision-spotlight__hero {
+  display: grid;
+  gap: 8px;
+}
+
+.decision-spotlight__eyebrow,
+.decision-choice-card__eyebrow {
+  color: var(--color-accent-strong);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.decision-spotlight__title {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.decision-spotlight__title.is-defesa {
+  color: #1f6f48;
+}
+
+.decision-spotlight__title.is-acordo {
+  color: #b86a00;
+}
+
+.decision-spotlight__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.decision-metric-card,
+.agreement-editor__card {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.decision-metric-card span,
+.agreement-editor__card span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.decision-metric-card strong,
+.agreement-editor__card strong {
+  color: var(--color-dark);
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+
+.decision-metric-card small,
+.agreement-editor__card small {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.decision-form {
+  display: grid;
+  gap: 16px;
+}
+
+.decision-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.decision-choice-card,
+.strategy-pill {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.decision-choice-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgba(95, 95, 95, 0.14);
+  border-radius: 22px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.decision-choice-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.decision-choice-card strong {
+  color: var(--color-dark);
+  font-size: 1.05rem;
+}
+
+.decision-choice-card:hover,
+.decision-choice-card:focus-visible,
+.decision-choice-card.is-active {
+  transform: translateY(-2px);
+  border-color: rgba(255, 174, 53, 0.5);
+  background: linear-gradient(180deg, rgba(255, 174, 53, 0.12), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 16px 26px rgba(255, 174, 53, 0.12);
+}
+
+.strategy-pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.strategy-pill {
+  padding: 12px 18px;
+  border: 1px solid rgba(95, 95, 95, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.strategy-pill:hover,
+.strategy-pill:focus-visible,
+.strategy-pill.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(255, 174, 53, 0.5);
+  background: rgba(255, 174, 53, 0.14);
+  box-shadow: 0 12px 20px rgba(255, 174, 53, 0.12);
+}
+
+.agreement-editor {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fffdfa 0%, #fff4e4 100%);
+}
+
+.agreement-editor__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agreement-editor__header h3 {
+  margin: 4px 0 0;
+  color: var(--color-dark);
+}
+
+.agreement-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.agreement-editor__card input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(95, 95, 95, 0.18);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--color-text);
+  outline: none;
+}
+
+.agreement-editor__card input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(255, 174, 53, 0.18);
+}
+
+.acceptance-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 174, 53, 0.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fffdf9 0%, #fff7ec 100%);
+}
+
+.acceptance-panel__header {
+  display: grid;
+  gap: 4px;
+}
+
+.acceptance-panel__header h3 {
+  margin: 0;
+  color: var(--color-dark);
+}
+
 .lawyer-reason-card {
   padding: 16px 18px;
   color: var(--color-text);
@@ -1607,11 +1828,18 @@ input {
   .subsidy-grid,
   .process-summary,
   .lawyer-process-board,
-  .lawyer-detail-grid {
+  .lawyer-detail-grid,
+  .decision-spotlight__metrics,
+  .decision-choice-grid,
+  .agreement-editor__grid {
     grid-template-columns: 1fr;
   }
 
   .pipeline-actions {
+    flex-direction: column;
+  }
+
+  .agreement-editor__header {
     flex-direction: column;
   }
 }
