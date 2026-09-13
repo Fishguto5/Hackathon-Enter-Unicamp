@@ -1,0 +1,1495 @@
+{
+  "resumo_executivo": {
+    "quantidade_casos": 2,
+    "casos_defesa": 1,
+    "casos_acordo_prioritario": 0,
+    "casos_acordo_estrategico": 0,
+    "casos_revisao_humana": 1,
+    "valor_exposicao_total": 45000.0,
+    "economia_potencial_total": null,
+    "principais_riscos": [
+      "Prova fragmentada no caso digital com alegacao de fraude.",
+      "Ausencia de extrato e titularidade reduz a capacidade defensiva."
+    ],
+    "principais_oportunidades": [
+      "Sustentar defesa forte no caso com trilha documental completa.",
+      "Recuperar artefatos originarios do caso 2 antes de precificar acordo."
+    ],
+    "modo_hibrido_ativado": true
+  },
+  "casos_analisados": [
+    {
+      "id_caso": "Caso_01_0801234-56-2024-8-10-0001",
+      "extracao_fatos": {
+        "dados": {
+          "numero_processo": "0801234-56.2024.8.10.0001",
+          "uf": "MA",
+          "comarca": "São Luís",
+          "vara": "3ª Vara Cível",
+          "data_ajuizamento": "2024-02-05",
+          "data_contratacao": "2022-05-10",
+          "data_liberacao_credito": "2022-05-12",
+          "data_primeiro_desconto": "2022-06-10",
+          "autor_nome": "MARIA DAS GRAÇAS SILVA PEREIRA",
+          "autor_idade": 65,
+          "autor_aposentado": true,
+          "beneficio_inss": "123.456.789-0",
+          "banco": "BANCO UFMG S.A.",
+          "numero_contrato": "502348719",
+          "modalidade_credito": "Emprestimo consignado em beneficio previdenciario (INSS)",
+          "canal_contratacao": "Correspondente bancário - Canal Telefônico",
+          "valor_liberado": 5000.0,
+          "valor_total_pactuado": 8640.0,
+          "valor_parcela": 120.0,
+          "numero_parcelas": 72,
+          "parcelas_pagas": 21,
+          "parcelas_em_aberto": 52,
+          "saldo_devedor_atual": null,
+          "valor_da_causa": 20000.0,
+          "valor_pedido_danos_morais": 15000.0,
+          "valor_acordo_sugerido": null,
+          "valor_acordo_efetivo": null,
+          "resultado_judicial": null,
+          "valor_condenacao": null,
+          "data_encerramento": null,
+          "custos_processuais": null,
+          "custos_operacionais": null
+        },
+        "origens": [
+          {
+            "campo": "numero_processo",
+            "valor": "0801234-56.2024.8.10.0001",
+            "origem": null,
+            "tipo_informacao": "documentado",
+            "confianca": 0.0
+          },
+          {
+            "campo": "data_contratacao",
+            "valor": "2022-05-10",
+            "origem": "04_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "beneficio_inss",
+            "valor": "123.456.789-0",
+            "origem": "02_Contrato_502348719.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "numero_contrato",
+            "valor": "502348719",
+            "origem": "04_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "valor_liberado",
+            "valor": 5000.0,
+            "origem": "07_Laudo_Referenciado.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "valor_parcela",
+            "valor": 120.0,
+            "origem": "02_Contrato_502348719.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "numero_parcelas",
+            "valor": 72,
+            "origem": "04_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "uf",
+            "valor": "MA",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "comarca",
+            "valor": "São Luís",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "vara",
+            "valor": "3ª Vara Cível",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_ajuizamento",
+            "valor": "2024-02-05",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_liberacao_credito",
+            "valor": "2022-05-12",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_primeiro_desconto",
+            "valor": "2022-06-10",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_nome",
+            "valor": "MARIA DAS GRAÇAS SILVA PEREIRA",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_idade",
+            "valor": 65,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_aposentado",
+            "valor": true,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "banco",
+            "valor": "BANCO UFMG S.A.",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "modalidade_credito",
+            "valor": "Emprestimo consignado em beneficio previdenciario (INSS)",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "canal_contratacao",
+            "valor": "Correspondente bancário - Canal Telefônico",
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_total_pactuado",
+            "valor": 8640.0,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "parcelas_pagas",
+            "valor": 21,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "parcelas_em_aberto",
+            "valor": 52,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_da_causa",
+            "valor": 20000.0,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_pedido_danos_morais",
+            "valor": 15000.0,
+            "origem": "01_Autos_Processo_0801234-56-2024-8-10-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "saldo_devedor_atual",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_acordo_sugerido",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_acordo_efetivo",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "resultado_judicial",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_condenacao",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "data_encerramento",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "custos_processuais",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "custos_operacionais",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          }
+        ]
+      },
+      "evidencias": [
+        {
+          "evidencia": "contrato ou cedula de credito",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Contrato integral anexado.",
+          "documento_origem": "02_Contrato_502348719.pdf"
+        },
+        {
+          "evidencia": "extrato bancario",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 03_Extrato_Bancario.pdf.",
+          "documento_origem": "03_Extrato_Bancario.pdf"
+        },
+        {
+          "evidencia": "comprovante BACEN",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 04_Comprovante_de_Credito_BACEN.pdf.",
+          "documento_origem": "04_Comprovante_de_Credito_BACEN.pdf"
+        },
+        {
+          "evidencia": "dossie de validacao",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 05_Dossie_Veritas.pdf.",
+          "documento_origem": "05_Dossie_Veritas.pdf"
+        },
+        {
+          "evidencia": "biometria facial",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 05_Dossie_Veritas.pdf.",
+          "documento_origem": "05_Dossie_Veritas.pdf"
+        },
+        {
+          "evidencia": "gravacao telefonica",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 07_Laudo_Referenciado.pdf.",
+          "documento_origem": "07_Laudo_Referenciado.pdf"
+        },
+        {
+          "evidencia": "titularidade da conta de destino",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 03_Extrato_Bancario.pdf.",
+          "documento_origem": "03_Extrato_Bancario.pdf"
+        },
+        {
+          "evidencia": "movimentacao posterior dos recursos",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 03_Extrato_Bancario.pdf.",
+          "documento_origem": "03_Extrato_Bancario.pdf"
+        }
+      ],
+      "contradicoes": [],
+      "ifp": {
+        "nome": "IFCP - Indice de Forca do Caso Probatorio",
+        "objetivo": "Medir quanto o conjunto de documentos sustenta a defesa, em uma escala de 0 a 100.",
+        "variaveis_entrada": [
+          "tipo de evidencia",
+          "status da evidencia",
+          "peso maximo da evidencia",
+          "penalidades por contradicoes e inconsistencias"
+        ],
+        "formula": "IFCP = limite_0_100(soma(peso_da_evidencia x multiplicador_do_status) - penalidades)",
+        "ifp": 100.0,
+        "ifcp": 100.0,
+        "classificacao_ifp": "muito_alta",
+        "classificacao_ifcp": "muito_alta",
+        "soma_evidencias_antes_das_penalidades": 100.0,
+        "total_penalidades": 0.0,
+        "componentes_ifp": [
+          {
+            "fator": "contrato ou cedula de credito",
+            "variavel": "contract",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 20.0,
+            "pontuacao_maxima": 20.0,
+            "calculo": "20 x 1 = 20",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 02_Contrato_502348719.pdf."
+          },
+          {
+            "fator": "extrato bancario",
+            "variavel": "bank_statement",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 20.0,
+            "pontuacao_maxima": 20.0,
+            "calculo": "20 x 1 = 20",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 03_Extrato_Bancario.pdf."
+          },
+          {
+            "fator": "comprovante BACEN",
+            "variavel": "bacen_proof",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 15.0,
+            "pontuacao_maxima": 15.0,
+            "calculo": "15 x 1 = 15",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 04_Comprovante_de_Credito_BACEN.pdf."
+          },
+          {
+            "fator": "dossie de validacao",
+            "variavel": "dossier",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 15.0,
+            "pontuacao_maxima": 15.0,
+            "calculo": "15 x 1 = 15",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 05_Dossie_Veritas.pdf."
+          },
+          {
+            "fator": "biometria facial",
+            "variavel": "biometrics",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 10.0,
+            "pontuacao_maxima": 10.0,
+            "calculo": "10 x 1 = 10",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 05_Dossie_Veritas.pdf."
+          },
+          {
+            "fator": "gravacao telefonica",
+            "variavel": "recording",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 5.0,
+            "pontuacao_maxima": 5.0,
+            "calculo": "5 x 1 = 5",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 07_Laudo_Referenciado.pdf."
+          },
+          {
+            "fator": "titularidade da conta de destino",
+            "variavel": "account_ownership",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 10.0,
+            "pontuacao_maxima": 10.0,
+            "calculo": "10 x 1 = 10",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 03_Extrato_Bancario.pdf."
+          },
+          {
+            "fator": "movimentacao posterior dos recursos",
+            "variavel": "credit_movement",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 5.0,
+            "pontuacao_maxima": 5.0,
+            "calculo": "5 x 1 = 5",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 03_Extrato_Bancario.pdf."
+          }
+        ],
+        "penalidades": [],
+        "por_que_o_resultado": "Sustentacao documental muito alta; as principais evidencias estao presentes e validadas.",
+        "principais_lacunas": []
+      },
+      "risco_juridico": {
+        "risco_derrota": 0.0,
+        "classificacao_risco": "muito_baixo",
+        "fatores_favoraveis_ao_banco": [
+          "Contrato integral anexado.",
+          "Ha comprovante BACEN com liberacao do credito.",
+          "Extrato bancario corrobora o recebimento do credito.",
+          "Conta de destino aparece como compativel com a titularidade."
+        ],
+        "fatores_favoraveis_ao_autor": [],
+        "contradicoes_criticas": [],
+        "confianca_estimativa": 0.9
+      },
+      "analise_financeira": {
+        "status_calculo": "parcial",
+        "valor_exposicao_financeira": 20000.0,
+        "valor_esperado_condenacao": null,
+        "custo_defesa": null,
+        "custo_acordo": null,
+        "vantagem_acordo": null,
+        "economia_bruta": null,
+        "economia_liquida": null,
+        "dados_ausentes": [
+          "valor_condenacao_esperada",
+          "custos_processuais",
+          "custos_operacionais",
+          "probabilidade_aceitacao",
+          "tempo_estimado_defesa_em_meses",
+          "valor_acordo"
+        ],
+        "hipoteses_utilizadas": []
+      },
+      "recomendacao": {
+        "recomendacao": "DEFESA_RECOMENDADA",
+        "prioridade": "baixa",
+        "valor_acordo_sugerido": null,
+        "faixa_acordo_minima": null,
+        "faixa_acordo_maxima": null,
+        "justificativa_executiva": "IFP 100.0/100, risco 0.0/100 e exposicao observada de R$ 20000.00.",
+        "proximas_acoes": [
+          "Manter a estrategia de defesa com destaque para contrato, extrato e dossie.",
+          "Preservar a cadeia de custodia dos artefatos de autenticacao e da gravacao."
+        ],
+        "necessita_revisao_humana": false
+      },
+      "explicabilidade_score": {
+        "resumo": "IFP 100.0/100 calculado a partir das evidencias documentais e ajustado pela politica banco_default.",
+        "formula_ifp": "soma ponderada das evidencias - penalidades por inconsistencias relevantes",
+        "formula_risco": "risco_base + alegacoes/lacunas/inconsistencias - 0.5 * forca_probatoria",
+        "principais_impulsionadores": [
+          {
+            "fator": "contrato ou cedula de credito",
+            "pontuacao": 20.0,
+            "status": "present_and_verified",
+            "fonte": "02_Contrato_502348719.pdf"
+          },
+          {
+            "fator": "extrato bancario",
+            "pontuacao": 20.0,
+            "status": "present_and_verified",
+            "fonte": "03_Extrato_Bancario.pdf"
+          },
+          {
+            "fator": "comprovante BACEN",
+            "pontuacao": 15.0,
+            "status": "present_and_verified",
+            "fonte": "04_Comprovante_de_Credito_BACEN.pdf"
+          },
+          {
+            "fator": "dossie de validacao",
+            "pontuacao": 15.0,
+            "status": "present_and_verified",
+            "fonte": "05_Dossie_Veritas.pdf"
+          },
+          {
+            "fator": "biometria facial",
+            "pontuacao": 10.0,
+            "status": "present_and_verified",
+            "fonte": "05_Dossie_Veritas.pdf"
+          }
+        ],
+        "principais_redutores": [],
+        "penalidades_aplicadas": [],
+        "pesos_efetivos": {
+          "defeat_risk": 0.391304347826087,
+          "economic_exposure": 0.2173913043478261,
+          "time": 0.2173913043478261,
+          "provision_proxy": 0.1739130434782609
+        },
+        "configuracao_politica": {
+          "policy_name": "banco_default",
+          "policy_version": "demo-2.0-evidence-taxonomy",
+          "risk": {
+            "initial": 50,
+            "fraud_claim": 10,
+            "account_contested": 20,
+            "missing_document": 8,
+            "inconsistency": 10,
+            "high_risk_ufs": {}
+          },
+          "evidence_multipliers": {
+            "present_and_verified": 1.0,
+            "present_but_unverified": 0.6,
+            "referenced_only": 0.3,
+            "missing": 0.0,
+            "contradicted": -0.5
+          }
+        }
+      },
+      "personalizacao": {
+        "policy_name": "banco_default",
+        "policy_version": "demo-2.0-evidence-taxonomy",
+        "decision_profile_name": "medio_risco",
+        "decision_profile": {
+          "nome": "medio_risco",
+          "descricao": "Perfil balanceado: reproduz a politica atual.",
+          "threshold_exito": 0.7,
+          "meta_scale": 1.0
+        },
+        "weights": {
+          "defeat_risk": 0.4,
+          "economic_exposure": 0.25,
+          "time": 0.15,
+          "provision_proxy": 0.2
+        },
+        "risk_parameters": {
+          "initial": 50,
+          "fraud_claim": 10,
+          "account_contested": 20,
+          "missing_document": 8,
+          "inconsistency": 10,
+          "high_risk_ufs": {}
+        },
+        "time_parameters": {
+          "default_days": 180,
+          "priority_if_missing": 50
+        }
+      },
+      "analise_decision_engine": {
+        "profile_name": "medio_risco",
+        "input_case": [
+          20000.0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "chance_exito": 0.9594714267282718,
+        "risco_nao_exito": 0.04052857327172821,
+        "recomendacao": "Defesa",
+        "score_previsto": null,
+        "meta_economia": null,
+        "score_ajustado": null,
+        "valor_sugerido_acordo": null,
+        "threshold_exito": 0.7,
+        "base_historica": "C:\\Users\\letic\\Downloads\\Hackaton_Enter_Base_Candidatos (1).xlsx",
+        "alinhamento_motor_documental": {
+          "motor_documental": "Defesa",
+          "decision_engine": "Defesa",
+          "concorda": true
+        },
+        "explicabilidade": {
+          "resumo": "O decision engine usa valor da causa + disponibilidade documental para estimar chance de exito e sugerir defesa ou acordo.",
+          "features_de_entrada": {
+            "valor_da_causa": 20000.0,
+            "contrato": 1,
+            "extrato": 1,
+            "comprovante_credito": 1,
+            "dossie": 1,
+            "evolucao_divida": 1,
+            "laudo_referenciado": 1
+          },
+          "interpretacao": [
+            "Mais documentos relevantes tendem a aumentar a chance de exito estimada.",
+            "Perfis de politica alteram o threshold de defesa e a meta de economia do acordo."
+          ]
+        }
+      },
+      "confianca_geral": 0.9
+    },
+    {
+      "id_caso": "Caso_02_0654321-09-2024-8-04-0001",
+      "extracao_fatos": {
+        "dados": {
+          "numero_processo": "0654321-09.2024.8.04.0001",
+          "uf": "AM",
+          "comarca": "Manaus",
+          "vara": "5ª Vara Cível",
+          "data_ajuizamento": "2024-03-19",
+          "data_contratacao": "2023-07-18",
+          "data_liberacao_credito": "2023-07-19",
+          "data_primeiro_desconto": "2023-08-18",
+          "autor_nome": "JOSÉ RAIMUNDO OLIVEIRA COSTA",
+          "autor_idade": 61,
+          "autor_aposentado": true,
+          "beneficio_inss": "987.654.321-0",
+          "banco": "BANCO UFMG S.A.",
+          "numero_contrato": "603827451",
+          "modalidade_credito": "Emprestimo consignado em beneficio previdenciario (INSS)",
+          "canal_contratacao": "Digital - Aplicativo Mobile (self-service)",
+          "valor_liberado": 8500.0,
+          "valor_total_pactuado": 15120.0,
+          "valor_parcela": 180.0,
+          "numero_parcelas": 84,
+          "parcelas_pagas": 8,
+          "parcelas_em_aberto": 77,
+          "saldo_devedor_atual": null,
+          "valor_da_causa": 25000.0,
+          "valor_pedido_danos_morais": 18000.0,
+          "valor_acordo_sugerido": null,
+          "valor_acordo_efetivo": null,
+          "resultado_judicial": null,
+          "valor_condenacao": null,
+          "data_encerramento": null,
+          "custos_processuais": null,
+          "custos_operacionais": null
+        },
+        "origens": [
+          {
+            "campo": "numero_processo",
+            "valor": "0654321-09.2024.8.04.0001",
+            "origem": null,
+            "tipo_informacao": "documentado",
+            "confianca": 0.0
+          },
+          {
+            "campo": "data_contratacao",
+            "valor": "2023-07-18",
+            "origem": "02_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "beneficio_inss",
+            "valor": "987.654.321-0",
+            "origem": "02_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "numero_contrato",
+            "valor": "603827451",
+            "origem": "02_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "valor_liberado",
+            "valor": 8500.0,
+            "origem": "04_Laudo_Referenciado.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "valor_parcela",
+            "valor": 180.0,
+            "origem": "02_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "numero_parcelas",
+            "valor": 84,
+            "origem": "02_Comprovante_de_Credito_BACEN.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.7
+          },
+          {
+            "campo": "uf",
+            "valor": "AM",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "comarca",
+            "valor": "Manaus",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "vara",
+            "valor": "5ª Vara Cível",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_ajuizamento",
+            "valor": "2024-03-19",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_liberacao_credito",
+            "valor": "2023-07-19",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "data_primeiro_desconto",
+            "valor": "2023-08-18",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_nome",
+            "valor": "JOSÉ RAIMUNDO OLIVEIRA COSTA",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_idade",
+            "valor": 61,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "autor_aposentado",
+            "valor": true,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "banco",
+            "valor": "BANCO UFMG S.A.",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "modalidade_credito",
+            "valor": "Emprestimo consignado em beneficio previdenciario (INSS)",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "canal_contratacao",
+            "valor": "Digital - Aplicativo Mobile (self-service)",
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_total_pactuado",
+            "valor": 15120.0,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "parcelas_pagas",
+            "valor": 8,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "parcelas_em_aberto",
+            "valor": 77,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "inferido",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_da_causa",
+            "valor": 25000.0,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "valor_pedido_danos_morais",
+            "valor": 18000.0,
+            "origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "tipo_informacao": "documentado",
+            "confianca": 0.6
+          },
+          {
+            "campo": "saldo_devedor_atual",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_acordo_sugerido",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_acordo_efetivo",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "resultado_judicial",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "valor_condenacao",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "data_encerramento",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "custos_processuais",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          },
+          {
+            "campo": "custos_operacionais",
+            "valor": null,
+            "origem": null,
+            "tipo_informacao": "ausente",
+            "confianca": 0.0
+          }
+        ]
+      },
+      "evidencias": [
+        {
+          "evidencia": "contrato ou cedula de credito",
+          "presente": true,
+          "recuperavel": true,
+          "qualidade": "baixa",
+          "favorece": "inconclusivo",
+          "fundamentacao": "Contrato apenas referenciado em documento consolidado.",
+          "documento_origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+        },
+        {
+          "evidencia": "extrato bancario",
+          "presente": false,
+          "recuperavel": true,
+          "qualidade": "nao_aplicavel",
+          "favorece": "autor",
+          "fundamentacao": "Status missing com fonte nao identificada.",
+          "documento_origem": null
+        },
+        {
+          "evidencia": "comprovante BACEN",
+          "presente": true,
+          "recuperavel": false,
+          "qualidade": "alta",
+          "favorece": "banco",
+          "fundamentacao": "Status present_and_verified com fonte 02_Comprovante_de_Credito_BACEN.pdf.",
+          "documento_origem": "02_Comprovante_de_Credito_BACEN.pdf"
+        },
+        {
+          "evidencia": "dossie de validacao",
+          "presente": true,
+          "recuperavel": true,
+          "qualidade": "baixa",
+          "favorece": "inconclusivo",
+          "fundamentacao": "Status referenced_only com fonte 04_Laudo_Referenciado.pdf.",
+          "documento_origem": "04_Laudo_Referenciado.pdf"
+        },
+        {
+          "evidencia": "biometria facial",
+          "presente": true,
+          "recuperavel": true,
+          "qualidade": "media",
+          "favorece": "inconclusivo",
+          "fundamentacao": "Status present_but_unverified com fonte 01_Autos_Processo_0654321-09-2024-8-04-0001.pdf.",
+          "documento_origem": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+        },
+        {
+          "evidencia": "gravacao telefonica",
+          "presente": true,
+          "recuperavel": true,
+          "qualidade": "baixa",
+          "favorece": "inconclusivo",
+          "fundamentacao": "Status referenced_only com fonte 04_Laudo_Referenciado.pdf.",
+          "documento_origem": "04_Laudo_Referenciado.pdf"
+        },
+        {
+          "evidencia": "titularidade da conta de destino",
+          "presente": false,
+          "recuperavel": true,
+          "qualidade": "nao_aplicavel",
+          "favorece": "autor",
+          "fundamentacao": "Status missing com fonte nao identificada.",
+          "documento_origem": null
+        },
+        {
+          "evidencia": "movimentacao posterior dos recursos",
+          "presente": false,
+          "recuperavel": true,
+          "qualidade": "nao_aplicavel",
+          "favorece": "autor",
+          "fundamentacao": "Status missing com fonte nao identificada.",
+          "documento_origem": null
+        }
+      ],
+      "contradicoes": [
+        {
+          "tipo": "alegacao_vs_prova",
+          "descricao": "O autor alega fraude ou desconhecimento da contratacao, exigindo prova robusta de autoria.",
+          "fontes": [
+            "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+          ]
+        },
+        {
+          "tipo": "documento_nao_anexado",
+          "descricao": "A evidencia contrato ou cedula de credito foi apenas referenciada, sem anexacao integral.",
+          "fontes": [
+            "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+          ]
+        },
+        {
+          "tipo": "lacuna_essencial",
+          "descricao": "Ausencia de extrato bancario no conjunto analisado.",
+          "fontes": []
+        },
+        {
+          "tipo": "documento_nao_anexado",
+          "descricao": "A evidencia dossie de validacao foi apenas referenciada, sem anexacao integral.",
+          "fontes": [
+            "04_Laudo_Referenciado.pdf"
+          ]
+        },
+        {
+          "tipo": "documento_nao_anexado",
+          "descricao": "A evidencia gravacao telefonica foi apenas referenciada, sem anexacao integral.",
+          "fontes": [
+            "04_Laudo_Referenciado.pdf"
+          ]
+        },
+        {
+          "tipo": "lacuna_essencial",
+          "descricao": "Ausencia de titularidade da conta de destino no conjunto analisado.",
+          "fontes": []
+        },
+        {
+          "tipo": "lacuna_essencial",
+          "descricao": "Ausencia de movimentacao posterior dos recursos no conjunto analisado.",
+          "fontes": []
+        }
+      ],
+      "ifp": {
+        "nome": "IFCP - Indice de Forca do Caso Probatorio",
+        "objetivo": "Medir quanto o conjunto de documentos sustenta a defesa, em uma escala de 0 a 100.",
+        "variaveis_entrada": [
+          "tipo de evidencia",
+          "status da evidencia",
+          "peso maximo da evidencia",
+          "penalidades por contradicoes e inconsistencias"
+        ],
+        "formula": "IFCP = limite_0_100(soma(peso_da_evidencia x multiplicador_do_status) - penalidades)",
+        "ifp": 33.0,
+        "ifcp": 33.0,
+        "classificacao_ifp": "baixa",
+        "classificacao_ifcp": "baixa",
+        "soma_evidencias_antes_das_penalidades": 33.0,
+        "total_penalidades": 0.0,
+        "componentes_ifp": [
+          {
+            "fator": "contrato ou cedula de credito",
+            "variavel": "contract",
+            "status": "referenced_only",
+            "multiplicador": 0.3,
+            "pontuacao_obtida": 6.0,
+            "pontuacao_maxima": 20.0,
+            "calculo": "20 x 0.3 = 6",
+            "justificativa": "Status referenced_only: documento apenas mencionado, sem anexo integral. Fonte: 01_Autos_Processo_0654321-09-2024-8-04-0001.pdf."
+          },
+          {
+            "fator": "extrato bancario",
+            "variavel": "bank_statement",
+            "status": "missing",
+            "multiplicador": 0.0,
+            "pontuacao_obtida": 0.0,
+            "pontuacao_maxima": 20.0,
+            "calculo": "20 x 0 = 0",
+            "justificativa": "Status missing: documento nao encontrado no caso. Fonte: nao identificada."
+          },
+          {
+            "fator": "comprovante BACEN",
+            "variavel": "bacen_proof",
+            "status": "present_and_verified",
+            "multiplicador": 1.0,
+            "pontuacao_obtida": 15.0,
+            "pontuacao_maxima": 15.0,
+            "calculo": "15 x 1 = 15",
+            "justificativa": "Status present_and_verified: documento presente e validado. Fonte: 02_Comprovante_de_Credito_BACEN.pdf."
+          },
+          {
+            "fator": "dossie de validacao",
+            "variavel": "dossier",
+            "status": "referenced_only",
+            "multiplicador": 0.3,
+            "pontuacao_obtida": 4.5,
+            "pontuacao_maxima": 15.0,
+            "calculo": "15 x 0.3 = 4.5",
+            "justificativa": "Status referenced_only: documento apenas mencionado, sem anexo integral. Fonte: 04_Laudo_Referenciado.pdf."
+          },
+          {
+            "fator": "biometria facial",
+            "variavel": "biometrics",
+            "status": "present_but_unverified",
+            "multiplicador": 0.6,
+            "pontuacao_obtida": 6.0,
+            "pontuacao_maxima": 10.0,
+            "calculo": "10 x 0.6 = 6",
+            "justificativa": "Status present_but_unverified: documento presente, mas sem validacao suficiente. Fonte: 01_Autos_Processo_0654321-09-2024-8-04-0001.pdf."
+          },
+          {
+            "fator": "gravacao telefonica",
+            "variavel": "recording",
+            "status": "referenced_only",
+            "multiplicador": 0.3,
+            "pontuacao_obtida": 1.5,
+            "pontuacao_maxima": 5.0,
+            "calculo": "5 x 0.3 = 1.5",
+            "justificativa": "Status referenced_only: documento apenas mencionado, sem anexo integral. Fonte: 04_Laudo_Referenciado.pdf."
+          },
+          {
+            "fator": "titularidade da conta de destino",
+            "variavel": "account_ownership",
+            "status": "missing",
+            "multiplicador": 0.0,
+            "pontuacao_obtida": 0.0,
+            "pontuacao_maxima": 10.0,
+            "calculo": "10 x 0 = 0",
+            "justificativa": "Status missing: documento nao encontrado no caso. Fonte: nao identificada."
+          },
+          {
+            "fator": "movimentacao posterior dos recursos",
+            "variavel": "credit_movement",
+            "status": "missing",
+            "multiplicador": 0.0,
+            "pontuacao_obtida": 0.0,
+            "pontuacao_maxima": 5.0,
+            "calculo": "5 x 0 = 0",
+            "justificativa": "Status missing: documento nao encontrado no caso. Fonte: nao identificada."
+          }
+        ],
+        "penalidades": [],
+        "por_que_o_resultado": "Sustentacao documental baixa; ha lacunas relevantes no conjunto analisado.",
+        "principais_lacunas": [
+          "contrato ou cedula de credito",
+          "extrato bancario",
+          "dossie de validacao",
+          "gravacao telefonica",
+          "titularidade da conta de destino",
+          "movimentacao posterior dos recursos"
+        ]
+      },
+      "risco_juridico": {
+        "risco_derrota": 51.5,
+        "classificacao_risco": "moderado",
+        "fatores_favoraveis_ao_banco": [
+          "Ha comprovante BACEN com liberacao do credito."
+        ],
+        "fatores_favoraveis_ao_autor": [
+          "Ha alegacao de fraude/desconhecimento na peticao inicial.",
+          "Contrato nao foi apresentado integralmente com validacao forte.",
+          "Nao ha extrato bancario anexado para comprovar recebimento e uso dos recursos.",
+          "Nao ha prova de movimentacao posterior pelo titular."
+        ],
+        "contradicoes_criticas": [
+          "O autor alega fraude ou desconhecimento da contratacao, exigindo prova robusta de autoria.",
+          "A evidencia contrato ou cedula de credito foi apenas referenciada, sem anexacao integral.",
+          "Ausencia de extrato bancario no conjunto analisado.",
+          "A evidencia dossie de validacao foi apenas referenciada, sem anexacao integral.",
+          "A evidencia gravacao telefonica foi apenas referenciada, sem anexacao integral.",
+          "Ausencia de titularidade da conta de destino no conjunto analisado.",
+          "Ausencia de movimentacao posterior dos recursos no conjunto analisado."
+        ],
+        "confianca_estimativa": 0.58
+      },
+      "analise_financeira": {
+        "status_calculo": "parcial",
+        "valor_exposicao_financeira": 25000.0,
+        "valor_esperado_condenacao": null,
+        "custo_defesa": null,
+        "custo_acordo": null,
+        "vantagem_acordo": null,
+        "economia_bruta": null,
+        "economia_liquida": null,
+        "dados_ausentes": [
+          "valor_condenacao_esperada",
+          "custos_processuais",
+          "custos_operacionais",
+          "probabilidade_aceitacao",
+          "tempo_estimado_defesa_em_meses",
+          "valor_acordo"
+        ],
+        "hipoteses_utilizadas": []
+      },
+      "recomendacao": {
+        "recomendacao": "REVISAO_HUMANA",
+        "prioridade": "alta",
+        "valor_acordo_sugerido": null,
+        "faixa_acordo_minima": null,
+        "faixa_acordo_maxima": null,
+        "justificativa_executiva": "IFP 33.0/100, risco 51.5/100 e exposicao observada de R$ 25000.00.",
+        "proximas_acoes": [
+          "Recuperar contrato integral, prova de titularidade da conta e extrato de movimentacao.",
+          "Submeter o caso a revisao humana antes de definir proposta de acordo."
+        ],
+        "necessita_revisao_humana": true
+      },
+      "explicabilidade_score": {
+        "resumo": "IFP 33.0/100 calculado a partir das evidencias documentais e ajustado pela politica banco_default.",
+        "formula_ifp": "soma ponderada das evidencias - penalidades por inconsistencias relevantes",
+        "formula_risco": "risco_base + alegacoes/lacunas/inconsistencias - 0.5 * forca_probatoria",
+        "principais_impulsionadores": [
+          {
+            "fator": "comprovante BACEN",
+            "pontuacao": 15.0,
+            "status": "present_and_verified",
+            "fonte": "02_Comprovante_de_Credito_BACEN.pdf"
+          },
+          {
+            "fator": "contrato ou cedula de credito",
+            "pontuacao": 6.0,
+            "status": "referenced_only",
+            "fonte": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+          },
+          {
+            "fator": "biometria facial",
+            "pontuacao": 6.0,
+            "status": "present_but_unverified",
+            "fonte": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf"
+          },
+          {
+            "fator": "dossie de validacao",
+            "pontuacao": 4.5,
+            "status": "referenced_only",
+            "fonte": "04_Laudo_Referenciado.pdf"
+          },
+          {
+            "fator": "gravacao telefonica",
+            "pontuacao": 1.5,
+            "status": "referenced_only",
+            "fonte": "04_Laudo_Referenciado.pdf"
+          }
+        ],
+        "principais_redutores": [
+          {
+            "fator": "contrato ou cedula de credito",
+            "status": "referenced_only",
+            "fonte": "01_Autos_Processo_0654321-09-2024-8-04-0001.pdf",
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          },
+          {
+            "fator": "extrato bancario",
+            "status": "missing",
+            "fonte": null,
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          },
+          {
+            "fator": "dossie de validacao",
+            "status": "referenced_only",
+            "fonte": "04_Laudo_Referenciado.pdf",
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          },
+          {
+            "fator": "gravacao telefonica",
+            "status": "referenced_only",
+            "fonte": "04_Laudo_Referenciado.pdf",
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          },
+          {
+            "fator": "titularidade da conta de destino",
+            "status": "missing",
+            "fonte": null,
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          },
+          {
+            "fator": "movimentacao posterior dos recursos",
+            "status": "missing",
+            "fonte": null,
+            "impacto": "reduz a forca probatoria e/ou aumenta o risco"
+          }
+        ],
+        "penalidades_aplicadas": [],
+        "pesos_efetivos": {
+          "defeat_risk": 0.391304347826087,
+          "economic_exposure": 0.2173913043478261,
+          "time": 0.2173913043478261,
+          "provision_proxy": 0.1739130434782609
+        },
+        "configuracao_politica": {
+          "policy_name": "banco_default",
+          "policy_version": "demo-2.0-evidence-taxonomy",
+          "risk": {
+            "initial": 50,
+            "fraud_claim": 10,
+            "account_contested": 20,
+            "missing_document": 8,
+            "inconsistency": 10,
+            "high_risk_ufs": {}
+          },
+          "evidence_multipliers": {
+            "present_and_verified": 1.0,
+            "present_but_unverified": 0.6,
+            "referenced_only": 0.3,
+            "missing": 0.0,
+            "contradicted": -0.5
+          }
+        }
+      },
+      "personalizacao": {
+        "policy_name": "banco_default",
+        "policy_version": "demo-2.0-evidence-taxonomy",
+        "decision_profile_name": "medio_risco",
+        "decision_profile": {
+          "nome": "medio_risco",
+          "descricao": "Perfil balanceado: reproduz a politica atual.",
+          "threshold_exito": 0.7,
+          "meta_scale": 1.0
+        },
+        "weights": {
+          "defeat_risk": 0.4,
+          "economic_exposure": 0.25,
+          "time": 0.15,
+          "provision_proxy": 0.2
+        },
+        "risk_parameters": {
+          "initial": 50,
+          "fraud_claim": 10,
+          "account_contested": 20,
+          "missing_document": 8,
+          "inconsistency": 10,
+          "high_risk_ufs": {}
+        },
+        "time_parameters": {
+          "default_days": 180,
+          "priority_if_missing": 50
+        }
+      },
+      "analise_decision_engine": {
+        "profile_name": "medio_risco",
+        "input_case": [
+          25000.0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          1
+        ],
+        "chance_exito": 0.05134598602116467,
+        "risco_nao_exito": 0.9486540139788353,
+        "recomendacao": "Acordo",
+        "score_previsto": 0.7348919018311378,
+        "meta_economia": 0.2,
+        "score_ajustado": 0.5879135214649103,
+        "valor_sugerido_acordo": 14697.838036622757,
+        "threshold_exito": 0.7,
+        "base_historica": "C:\\Users\\letic\\Downloads\\Hackaton_Enter_Base_Candidatos (1).xlsx",
+        "alinhamento_motor_documental": {
+          "motor_documental": "Acordo/Revisao",
+          "decision_engine": "Acordo",
+          "concorda": true
+        },
+        "explicabilidade": {
+          "resumo": "O decision engine usa valor da causa + disponibilidade documental para estimar chance de exito e sugerir defesa ou acordo.",
+          "features_de_entrada": {
+            "valor_da_causa": 25000.0,
+            "contrato": 0,
+            "extrato": 0,
+            "comprovante_credito": 1,
+            "dossie": 0,
+            "evolucao_divida": 1,
+            "laudo_referenciado": 1
+          },
+          "interpretacao": [
+            "Mais documentos relevantes tendem a aumentar a chance de exito estimada.",
+            "Perfis de politica alteram o threshold de defesa e a meta de economia do acordo."
+          ]
+        }
+      },
+      "confianca_geral": 0.58
+    }
+  ],
+  "metricas_carteira": {
+    "contratacao": {
+      "indice_medio_forca_probatoria": 66.5,
+      "mediana_ifp": 66.5,
+      "taxa_documentacao_completa": 50.0,
+      "taxa_inconsistencia_documental": 0.0,
+      "taxa_documentos_ausentes": 50.0,
+      "taxa_validacao_biometrica": 50.0,
+      "taxa_conta_destino_compativel": 50.0,
+      "taxa_credito_movimentado_pelo_titular": 50.0,
+      "distribuicao_casos_por_canal_contratacao": {
+        "Correspondente bancário - Canal Telefônico": 1,
+        "Digital - Aplicativo Mobile (self-service)": 1
+      },
+      "taxa_risco_por_canal": {
+        "Correspondente bancário - Canal Telefônico": 0.0,
+        "Digital - Aplicativo Mobile (self-service)": 51.5
+      },
+      "tempo_medio_para_recuperar_evidencias": null,
+      "taxa_casos_encaminhados_revisao_humana": 50.0
+    },
+    "judicializacao": {
+      "taxa_exito": null,
+      "taxa_nao_exito": null,
+      "valor_medio_condenacao": null,
+      "mediana_condenacao": null,
+      "condenacao_media_sobre_valor_da_causa": null,
+      "taxa_acordo": null,
+      "taxa_aceitacao": null,
+      "valor_medio_acordos": null,
+      "economia_media_por_acordo": null,
+      "economia_liquida_media": null,
+      "tempo_medio_ate_encerramento": null,
+      "custo_medio_por_processo": null,
+      "quantidade_processos_ativos": 2,
+      "taxa_encerramento_no_periodo": 0.0
+    },
+    "decisao": {
+      "precisao_recomendacoes_defesa": null,
+      "recall_casos_perdidos": null,
+      "taxa_falsos_acordos": null,
+      "quantidade_perdas_evitadas": null,
+      "valor_perdas_evitadas": null,
+      "taxa_revisao_humana": 50.0,
+      "taxa_override_pelos_advogados": null,
+      "qualidade_overrides": null,
+      "regret_economico_medio": null,
+      "economia_potencial_nao_capturada": null,
+      "acordos_desnecessarios": null,
+      "oportunidades_perdidas": null
+    }
+  },
+  "padroes_identificados": [
+    {
+      "padrao": "canal de contratacao x IFP e risco",
+      "segmento": "Correspondente bancário - Canal Telefônico",
+      "metrica_observada": "media de IFP e media de risco",
+      "valor": {
+        "ifp_medio": 100.0,
+        "risco_medio": 0.0
+      },
+      "comparacao": "Comparado apenas com os demais casos desta amostra.",
+      "interpretacao": "Foi observado que o segmento apresenta o nivel de prova e risco acima, mas a amostra e insuficiente para conclusao causal.",
+      "nivel_confianca": "baixo",
+      "possivel_confundimento": "A composicao documental e o estagio processual diferem entre os casos.",
+      "requer_validacao_estatistica": true
+    },
+    {
+      "padrao": "canal de contratacao x IFP e risco",
+      "segmento": "Digital - Aplicativo Mobile (self-service)",
+      "metrica_observada": "media de IFP e media de risco",
+      "valor": {
+        "ifp_medio": 33.0,
+        "risco_medio": 51.5
+      },
+      "comparacao": "Comparado apenas com os demais casos desta amostra.",
+      "interpretacao": "Foi observado que o segmento apresenta o nivel de prova e risco acima, mas a amostra e insuficiente para conclusao causal.",
+      "nivel_confianca": "baixo",
+      "possivel_confundimento": "A composicao documental e o estagio processual diferem entre os casos.",
+      "requer_validacao_estatistica": true
+    },
+    {
+      "padrao": "ausencia de evidencias essenciais x risco de derrota",
+      "segmento": "Caso_02_0654321-09-2024-8-04-0001 versus Caso_01_0801234-56-2024-8-10-0001",
+      "metrica_observada": "lacunas essenciais e risco",
+      "valor": {
+        "caso_maior_risco": 51.5,
+        "caso_menor_risco": 0.0
+      },
+      "comparacao": "O caso com mais lacunas essenciais concentrou menor IFP e maior risco.",
+      "interpretacao": "Ha associacao aparente entre ausencia de contrato/extrato/titularidade e pior posicionamento defensivo.",
+      "nivel_confianca": "baixo",
+      "possivel_confundimento": "Alegacao de fraude e canal de contratacao tambem influenciam o risco.",
+      "requer_validacao_estatistica": true
+    }
+  ],
+  "casos_criticos": [
+    "Caso_02_0654321-09-2024-8-04-0001"
+  ],
+  "dados_ausentes_relevantes": [
+    "custos processuais individualizados",
+    "custos operacionais por caso",
+    "resultado judicial final",
+    "valor de condenacao historica comparavel",
+    "probabilidade de aceitacao de acordo"
+  ],
+  "limitacoes_analise": [
+    "A carteira contem apenas dois casos; qualquer padrao estatistico possui baixa confianca.",
+    "As metricas de decisao dependentes de desfecho judicial real permanecem indisponiveis.",
+    "A analise financeira ficou parcial por ausencia de custos e condenacao esperada observavel."
+  ],
+  "recomendacoes_operacionais": [
+    "Padronizar anexo do contrato integral, extrato, prova de titularidade e trilha de autenticacao em todos os casos.",
+    "Separar documentalmente o que e artefato originario do que e laudo interno referenciado.",
+    "Executar recalculo deterministico sempre que novos documentos forem juntados."
+  ],
+  "personalizacao_execucao": {
+    "policy_name": "banco_default",
+    "policy_version": "demo-2.0-evidence-taxonomy",
+    "decision_profile_name": "medio_risco",
+    "decision_profiles_disponiveis": [
+      "alto_risco",
+      "baixo_risco",
+      "medio_risco"
+    ],
+    "decision_engine_ativado": true,
+    "comparacao_perfis_ativada": false
+  },
+  "resumo_executivo_linguagem_natural": "Foram analisados 2 casos. O principal padrao observado foi a separacao entre um caso com trilha documental completa e outro com prova fragmentada. Os casos com defesa recomendada sao: Caso_01_0801234-56-2024-8-10-0001. Os casos que exigem revisao humana sao: Caso_02_0654321-09-2024-8-04-0001. As principais falhas documentais concentram-se em contrato apenas referenciado, ausencia de extrato e falta de prova de titularidade ou movimentacao. As oportunidades de reducao de custo dependem da recuperacao documental para evitar acordos mal precificados. Limitacoes relevantes: nao ha resultados judiciais finais, condenacoes realizadas nem custos processuais fechados. Casos criticos: Caso_02_0654321-09-2024-8-04-0001."
+}
