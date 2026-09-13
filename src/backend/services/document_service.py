@@ -3,14 +3,54 @@ from __future__ import annotations
 import io
 import re
 from typing import Iterable
+import unicodedata
 
 from pypdf import PdfReader
 
 from ..models import SUBSIDY_DEFINITIONS
 
 
+DOCUMENT_TYPE_SIGNATURES = {
+    "comprovante_credito": (
+        "comprovante de credito",
+        "comprovante de operacao de credito",
+        "codigo bacen",
+        "circular bacen",
+        "data da liberacao do credito",
+    ),
+    "laudo_referenciado": (
+        "laudo referenciado",
+        "laudo referenciado da operacao",
+        "canal de contratacao e evidencias",
+        "sintese da operacao",
+    ),
+    "evolucao_divida": (
+        "demonstrativo de evolucao da divida",
+        "saldo devedor em aberto",
+        "parcelas liquidadas",
+    ),
+    "dossie": (
+        "peticao inicial",
+        "acao declaratoria",
+        "autos do processo",
+    ),
+    "extrato": (
+        "extrato bancario",
+        "extrato de movimentacao",
+        "lancamentos da conta",
+    ),
+    "contrato": (
+        "cedula de credito",
+        "contrato de emprestimo",
+        "termo de contratacao",
+    ),
+}
+
+
 def _normalize_text(value: str) -> str:
-    return re.sub(r"\s+", " ", value).strip().lower()
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
 
 
 def extract_text_from_bytes(file_bytes: bytes, filename: str) -> tuple[str, list[str]]:
@@ -50,8 +90,22 @@ def detect_subsidies(filename: str, text: str) -> dict[str, int]:
 
 
 def classify_document(filename: str, text: str) -> tuple[str, dict[str, int]]:
-    """Classify a document locally when the structured API is unavailable."""
-    haystack = _normalize_text(f"{filename} {text}")
+    """Classify locally with document signatures before generic keyword fallback."""
+    normalized_filename = _normalize_text(filename)
+    normalized_text = _normalize_text(text)
+    heading = normalized_text[:2000]
+
+    # A document title is stronger evidence than generic words such as "contrato".
+    for document_type, signatures in DOCUMENT_TYPE_SIGNATURES.items():
+        if any(
+            signature in normalized_filename or signature in heading
+            for signature in signatures
+        ):
+            return document_type, {
+                key: int(key == document_type) for key in SUBSIDY_DEFINITIONS
+            }
+
+    haystack = f"{normalized_filename} {normalized_text}"
     scores = {
         key: sum(keyword in haystack for keyword in definition["keywords"])
         for key, definition in SUBSIDY_DEFINITIONS.items()

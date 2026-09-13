@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from src.backend.services.extraction_service import StructuredExtractionService
+from src.backend.services.extraction_service import StructuredExtractionService, heuristic_extract, parse_money
 
 
 class FakeOpenAI:
@@ -30,6 +30,82 @@ class FakeOpenAI:
 class StructuredExtractionServiceIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
         FakeOpenAI.reset()
+
+    def test_heuristic_uses_the_labelled_claim_amount_not_an_earlier_installment(self) -> None:
+        payload = heuristic_extract(
+            "Caso de teste",
+            (
+                "Parcela mensal: R$ 120,00. Valor liberado: R$ 5.000,00. "
+                "Da-se a causa o valor de R$ 20.000,00."
+            ),
+        )
+
+        self.assertEqual(payload["valor_causa"], 20000.0)
+
+    def test_heuristic_does_not_treat_a_generic_agreement_mention_as_case_outcome(self) -> None:
+        payload = heuristic_extract(
+            "Caso de teste",
+            "A procuracao autoriza firmar acordo extrajudicial em nome do autor.",
+        )
+
+        self.assertEqual(payload["resultado_macro"], "em analise")
+
+    def test_money_parser_supports_brazilian_and_us_separators(self) -> None:
+        self.assertEqual(parse_money("R$ 20.000,00"), 20000.0)
+        self.assertEqual(parse_money("R$ 20,000.00"), 20000.0)
+
+    def test_heuristic_extracts_facts_from_petition_and_financial_subsidies(self) -> None:
+        payload = heuristic_extract(
+            "Caso de teste",
+            """
+            Processo nº 1234567-89.2026.8.26.0100
+            MARIO SILVA COSTA, brasileiro, inscrito no CPF/MF sob o nº 123.456.789-00,
+            em face de BANCO EXEMPLO S.A., instituição financeira inscrita no CNPJ/MF.
+            O Autor jamais contratou o empréstimo consignado nº 603827451 e relata fraude.
+            O valor creditado foi depositado em conta corrente 00012345-6, que o Autor não possui.
+            Dá-se à causa o valor de R$ 25.000,00.
+            Condenar o réu ao pagamento de indenização por danos morais no valor de R$ 18.000,00.
+
+            Nome completo
+            MARIO SILVA COSTA
+            Benefício INSS
+            987.654.321-0
+            Nº do contrato
+            603827451
+            Data da contratação
+            18/07/2023
+            Valor da operação (líquido)
+            R$ 8.500,00
+            Número de parcelas
+            84
+            Valor da parcela
+            R$ 180,00
+            Canal de contratação
+            Digital - Aplicativo Mobile (self-service)
+            Data da liberação do crédito
+            19/07/2023
+            UF de residência
+            AM
+            Valor total pactuado
+            R$ 15.120,00
+            Resumo: 8 de 84 parcelas liquidadas, Saldo devedor em aberto: R$ 2.748,38.
+            """,
+        )
+
+        self.assertEqual(payload["nome_autor"], "MARIO SILVA COSTA")
+        self.assertEqual(payload["nome_reu"], "BANCO EXEMPLO S.A.")
+        self.assertEqual(payload["valor_causa"], 25000.0)
+        self.assertEqual(payload["numero_contrato"], "603827451")
+        self.assertEqual(payload["beneficio_inss"], "987.654.321-0")
+        self.assertEqual(payload["valor_liberado"], 8500.0)
+        self.assertEqual(payload["valor_parcela"], 180.0)
+        self.assertEqual(payload["quantidade_parcelas"], 84.0)
+        self.assertEqual(payload["saldo_devedor"], 2748.38)
+        self.assertEqual(payload["parcelas_liquidadas"], 8.0)
+        self.assertEqual(payload["valor_pedido_danos_morais"], 18000.0)
+        self.assertEqual(payload["alegacao_fraude"], "sim")
+        self.assertEqual(payload["negacao_contratacao"], "sim")
+        self.assertEqual(payload["alegacao_conta_nao_pertencente"], "sim")
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "gpt-5"}, clear=False)
     @patch("src.backend.services.extraction_service.OpenAI", FakeOpenAI)
