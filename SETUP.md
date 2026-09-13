@@ -19,10 +19,12 @@ Copie `.env.example` para `.env` na raiz do projeto e preencha:
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-5
 VITE_API_BASE_URL=http://127.0.0.1:5000
+DECISION_MODEL_BUNDLE_PATH=data/decision_model_bundle.pkl
 ```
 
 Se `OPENAI_API_KEY` não estiver definida, o backend executa um fallback heurístico local para a extração dos campos.
 O backend também aceita `.env` dentro de `src/`, mas a chave deve ser uma chave nova e válida.
+Se `DECISION_MODEL_BUNDLE_PATH` não for definida, o backend tenta carregar `data/decision_model_bundle.pkl`.
 
 ## Instalação do Backend
 
@@ -43,6 +45,8 @@ O backend sobe por padrão em `http://127.0.0.1:5000`.
 
 Ao clicar em **Rodar pipeline**, a API envia todos os documentos do processo para duas análises
 estruturadas: classificação individual dos subsídios e extração dos dados centrais dos autos.
+Em seguida, ela monta a entrada do modelo de ML e retorna a recomendação estruturada de `defesa`
+ou `acordo`, incluindo probabilidade de êxito e valor sugerido de acordo quando aplicável.
 O botão **Exportar XLSX** gera uma aba `tabela_subsidios` com as colunas `Número do processos`,
 `Contrato`, `Extrato`, `Comprovante de crédito`, `Dossiê`, `Demonstrativo de evolução da dívida`
 e `Laudo referenciado`.

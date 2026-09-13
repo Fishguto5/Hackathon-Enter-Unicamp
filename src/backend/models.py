@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+import math
 from typing import Any
 from uuid import uuid4
 
@@ -36,6 +37,27 @@ SUBSIDY_DEFINITIONS = {
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def make_json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): make_json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [make_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [make_json_safe(item) for item in value]
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    if hasattr(value, "item") and callable(value.item):
+        try:
+            return make_json_safe(value.item())
+        except Exception:
+            return str(value)
+    return value
 
 
 @dataclass(slots=True)
@@ -75,7 +97,20 @@ class DocumentRecord:
         payload = asdict(self)
         payload["text_preview"] = self.extracted_text[:400]
         payload.pop("extracted_text", None)
-        return payload
+        return make_json_safe(payload)
+
+
+@dataclass(slots=True)
+class LawyerConfirmationRecord:
+    choice: str
+    algorithm_strategy: str | None
+    final_strategy: str
+    final_acceptance_status: str
+    proposed_agreement_amount: float | None
+    confirmed_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return make_json_safe(asdict(self))
 
 
 @dataclass(slots=True)
@@ -90,6 +125,8 @@ class ProcessRecord:
     extracted_data: dict[str, Any] | None = None
     subsidies: dict[str, int] = field(default_factory=dict)
     feature_vector: dict[str, Any] | None = None
+    model_prediction: dict[str, Any] | None = None
+    lawyer_confirmation: LawyerConfirmationRecord | None = None
     preprocessing_summary: dict[str, Any] | None = None
     processing_notes: list[str] = field(default_factory=list)
     recommendation_summary: str | None = None
@@ -114,7 +151,7 @@ class ProcessRecord:
         self.updated_at = utc_now_iso()
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        return make_json_safe({
             "id": self.id,
             "name": self.name,
             "status": self.status,
@@ -126,9 +163,13 @@ class ProcessRecord:
             "extracted_data": self.extracted_data,
             "subsidies": self.subsidies,
             "feature_vector": self.feature_vector,
+            "model_prediction": self.model_prediction,
+            "lawyer_confirmation": (
+                self.lawyer_confirmation.to_dict() if self.lawyer_confirmation else None
+            ),
             "preprocessing_summary": self.preprocessing_summary,
             "processing_notes": self.processing_notes,
             "recommendation_summary": self.recommendation_summary,
             "decision_reasons": self.decision_reasons,
             "final_response": self.final_response,
-        }
+        })
